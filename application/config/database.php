@@ -75,10 +75,10 @@ $query_builder = TRUE;
 
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'localhost',
-	'username' => 'root',
-	'password' => '',
-	'database' => 'sarpras',
+	'hostname' => getenv('SARPRAS_DEFAULT_DBHOSTNAME'),
+	'username' => getenv('SARPRAS_DEFAULT_DBUSERNAME'),
+	'password' => getenv('SARPRAS_DEFAULT_DBPASSWORD'),
+	'database' => getenv('SARPRAS_DEFAULT_DBNAME'),
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
