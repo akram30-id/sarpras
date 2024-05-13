@@ -97,4 +97,51 @@ class Area_m extends CI_Model
 			return ['status' => true, 'area_code' => $area_code];
 		}
 	}
+
+	function saveBooking($post)
+	{
+		// Generate area_code
+		$this->db->select_max('id_submission_area');
+		$query = $this->db->get('tb_submission_area');
+		$row = $query->row();
+		$id = (($row->id_submission_area == null) ? 0 : $row->id_submission_area) + 1;
+		$submissionAreaCode = 'BOOK' . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+		$area = trim($post['area']);
+		$explode = explode('-', $area);
+		$areaCode = $explode[0];
+
+		$data = [
+			'submission_area_code' => $submissionAreaCode,
+			'area_code' => $areaCode,
+			'user_submit' => $this->session->user->username,
+			'start_date' => date('Y-m-d H:i:s', strtotime($post['start_date'] . ' ' . $post['start_clock'])),
+			'end_date' => date('Y-m-d H:i:s', strtotime($post['end_date'] . ' ' . $post['end_clock'])),
+			'user_notes' => $post['user_notes']
+		];
+		$this->db->trans_begin();
+		$this->db->insert('tb_submission_area', $data);
+		
+		if ($this->db->trans_status() === FALSE) {
+			$this->db->trans_rollback();
+			return ['success' => false, 'message' => 'Transaction Failed'];
+		}
+
+		$this->db->trans_commit();
+		return ['success' => true];
+	}
+
+	function getBookingApproval($pic)
+	{
+		$this->db->select('a.*, b.area_name, b.pic_area, c.name AS submitter_name');
+		$this->db->from('tb_submission_area AS a');
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
+		if ($this->session->user->role != 1) {
+			$this->db->where('b.pic_area', $pic);
+		}
+		$query = $this->db->get()->result();
+
+		return $query;
+	}
 }

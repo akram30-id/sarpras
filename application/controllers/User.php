@@ -54,7 +54,7 @@ class User extends CI_Controller
 			// print_r($post);
 			// return;
 
-			$headers = getallheaders();
+			$headers = $_SERVER;
 			$avatar = $_FILES['avatar'];
 
 			$temp_name = $avatar['tmp_name'];
@@ -186,7 +186,7 @@ class User extends CI_Controller
 			// print_r($post);
 			// return;
 
-			$headers = getallheaders();
+			$headers = $_SERVER;
 			$avatar = $_FILES['avatar'];
 
 			$temp_name = $avatar['tmp_name'];
@@ -252,7 +252,7 @@ class User extends CI_Controller
 
 	public function delete($username)
 	{
-		$headers = getallheaders();
+		$headers = $_SERVER;
 		$headers['ip_address'] = $this->input->ip_address();
 
 		$this->db->where('username', $username);
