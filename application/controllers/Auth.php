@@ -20,7 +20,7 @@ class Auth extends CI_Controller
 	{
 		$post = $this->input->post();
 		$ipAddress = $this->input->ip_address();
-		$headers = getallheaders();
+		$headers = $_SERVER;
 		$headers['ip_address'] = $ipAddress;
 
 		$this->form_validation->set_data($post);

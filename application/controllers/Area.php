@@ -79,7 +79,7 @@ class Area extends CI_Controller
 		try {
 			$post = $this->input->post();
 
-			$headers = getallheaders();
+			$headers = $_SERVER;
 			$headers['ip_address'] = $this->input->ip_address();
 
 			$save = $this->Area_m->create_area($post['area_name'], $post['open_hours'], $post['close_hours']);
@@ -108,7 +108,7 @@ class Area extends CI_Controller
 			// Proses unggah gambar
 			$images = $_FILES['images'];
 
-			$headers = getallheaders();
+			$headers = $_SERVER;
 			$headers['ip_address'] = $this->input->ip_address();
 
 			// echo '<pre>';
@@ -182,7 +182,7 @@ class Area extends CI_Controller
 		try {
 			$post = $this->input->post();
 
-			$headers = getallheaders();
+			$headers = $_SERVER;
 			$headers['ip_address'] = $this->input->ip_address();
 
 			if (isset($post['delete_images'])) {
@@ -295,7 +295,7 @@ class Area extends CI_Controller
 	public function update($areaCode)
 	{
 		$post = $this->input->post();
-		$headers = getallheaders();
+		$headers = $_SERVER;
 		$headers['ip_address'] = $this->input->ip_address();
 
 		try {
@@ -322,7 +322,7 @@ class Area extends CI_Controller
 
 		try {
 			$delete = $this->Area_m->delete_area($areaCode);
-			$headers = getallheaders();
+			$headers = $_SERVER;
 			$headers['ip_address'] = $this->input->ip_address();
 
 			if ($delete['status'] == false) {
@@ -409,7 +409,7 @@ class Area extends CI_Controller
 	public function update_pic()
 	{
 		$post = $this->input->post();
-		$headers = getallheaders();
+		$headers = $_SERVER;
 		$headers['ip_address'] = $this->input->ip_address();
 
 		$area = $post['area'];
@@ -433,6 +433,45 @@ class Area extends CI_Controller
 		}
 
 		redirect('area/master');
+	}
+
+	public function book()
+	{
+		$data['title'] = 'Booking Area';
+		$data['module'] = 'Area Page';
+		$data['areas'] = $this->_getAreaMaster();
+		$data['findArea'] = base_url('area/find_area');
+		$data['content'] = $this->load->view('area/book', $data, true);
+
+		$this->load->view('template', $data);		
+	}
+
+	public function do_booking()
+	{
+		$post = $this->input->post();
+		$headers = $_SERVER;
+		try {
+			$save = $this->Area_m->saveBooking($post);
+
+			if ($save['success'] == false) {
+				$this->_setFlashdata(false, $save['message']);
+				$post['message'] = $save['message'];
+				$this->_writeLog('AREA_BOOK', false, $post, $headers);
+				return redirect('area/book');
+			}
+
+			$this->_setFlashdata(true, 'Booking Berhasil Dikirim.');
+			$this->_writeLog('AREA_BOOK', true, $post, $headers);
+			return redirect('area/book');
+
+		} catch (\Throwable $th) {
+			$this->_setFlashdata(false, 'Internal Server Error');
+			$post['error_message'] = $th->getMessage();
+			$post['error_line'] = $th->getLine();
+			$this->_writeLog('AREA_BOOK', false, $post, $headers);
+
+			return redirect('area/book');
+		}
 	}
 
 }
