@@ -44,6 +44,9 @@
 	<!-- JQUERY AUTOCOMPLETE JS -->
 	<script src="https://code.jquery.com/ui/1.13.3/jquery-ui.js"></script>
 
+	<!-- FULLCALENDAR JS -->
+	<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+
   <!-- =======================================================
   * Template Name: NiceAdmin
   * Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/

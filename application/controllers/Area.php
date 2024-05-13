@@ -568,6 +568,27 @@ class Area extends CI_Controller
 		}
 	}
 
+	public function getSchedule()
+	{
+		$get = $this->input->get();
+		$startDate = $get['start'];
+		$endDate = $get['end'];
+
+		$output = $this->Area_m->getSchedule($startDate, $endDate);
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	public function schedule()
+	{
+		$data['title'] = 'Booking Schedule';
+		$data['module'] = 'Area Page';
+		$data['event'] = base_url('area/getSchedule');
+		$data['content'] = $this->load->view('area/schedule', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
 }
 
 ?>

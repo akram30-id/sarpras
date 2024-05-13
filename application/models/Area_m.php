@@ -144,4 +144,20 @@ class Area_m extends CI_Model
 
 		return $query;
 	}
+
+	function getSchedule($start, $end)
+	{
+		$this->db->select('a.id_submission_area AS id, a.start_date AS start, a.end_date AS end, a.user_notes AS description, CONCAT(b.area_name, "[", c.name, "]") AS title');
+		$this->db->from('tb_submission_area AS a');
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
+		$this->db->where('a.status_approval', 'APPROVED');
+		$this->db->where('a.start_date >= "' . date('Y-m-d H:i:s', strtotime($start)) . '"', null);
+		$this->db->where('a.end_date < "' . date('Y-m-d H:i:s', strtotime($end)) . '"', null);
+		$this->db->limit(100);
+
+		$query = $this->db->get()->result();
+
+		return $query;
+	}
 }
