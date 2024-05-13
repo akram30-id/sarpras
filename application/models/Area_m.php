@@ -130,4 +130,18 @@ class Area_m extends CI_Model
 		$this->db->trans_commit();
 		return ['success' => true];
 	}
+
+	function getBookingApproval($pic)
+	{
+		$this->db->select('a.*, b.area_name, b.pic_area, c.name AS submitter_name');
+		$this->db->from('tb_submission_area AS a');
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
+		if ($this->session->user->role != 1) {
+			$this->db->where('b.pic_area', $pic);
+		}
+		$query = $this->db->get()->result();
+
+		return $query;
+	}
 }

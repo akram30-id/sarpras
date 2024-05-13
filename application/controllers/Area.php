@@ -351,7 +351,7 @@ class Area extends CI_Controller
 		$data['findArea'] = base_url('area/find_area');
 		$data['content'] = $this->load->view('area/assign_pic', $data, true);
 
-		$this->load->view('template', $data);	
+		$this->load->view('template', $data);
 	}
 
 	public function find_user()
@@ -443,7 +443,7 @@ class Area extends CI_Controller
 		$data['findArea'] = base_url('area/find_area');
 		$data['content'] = $this->load->view('area/book', $data, true);
 
-		$this->load->view('template', $data);		
+		$this->load->view('template', $data);
 	}
 
 	public function do_booking()
@@ -471,6 +471,100 @@ class Area extends CI_Controller
 			$this->_writeLog('AREA_BOOK', false, $post, $headers);
 
 			return redirect('area/book');
+		}
+	}
+
+	public function getDataBooking()
+	{
+		$result = $this->Area_m->getBookingApproval($this->session->user->username);
+
+		$data = [];
+
+		if ($result) {
+			$no = 1;
+			foreach ($result as $key => $value) {
+				$data[] = [
+					$no++,
+					$value->submission_area_code,
+					$value->status_approval == "PENDING" 
+					? "<span style='color: red;'><b>" . $value->status_approval . "</b></span>"
+					: "<span clas='fw-bold'>" . $value->status_approval . "</span>",
+					$value->area_name . ' <small>#' . $value->area_code . '</small>',
+					$value->submitter_name,
+					date('d F Y H:i', strtotime($value->start_date)),
+					date('d F Y H:i', strtotime($value->end_date)),
+					$value->user_notes,
+					$value->pic_area,
+					$value->status_approval == "PENDING" 
+					? '<div class="d-flex align-items-center justify-content-center">
+							<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>
+						</div>' 
+					: '<div class="d-flex align-items-center justify-content-center">
+							<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/0') . '" class="btn btn-danger btn-sm rounded-pill">Disapprove</a>
+						</div>'
+				];
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => count($result),
+				'recordsFiltered' => count($result),
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	public function approve()
+	{
+		$data['title'] = 'Approve Booking Area';
+		$data['module'] = 'Area Page';
+		$data['datatables'] = base_url('area/getDataBooking');
+		$data['content'] = $this->load->view('area/approve', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function do_approve($submissionCode, $isApprove = 1)
+	{
+		try {
+			$this->db->trans_begin();
+			$this->db->where('submission_area_code', $submissionCode);
+			if ($isApprove == 0) {
+				$this->db->set('status_approval', 'PENDING');
+			}
+
+			if ($isApprove == 1) {
+				$this->db->set('status_approval', 'APPROVED');
+			}
+			
+			$this->db->set('user_update', $this->session->user->username);
+			$this->db->update('tb_submission_area');
+
+			if ($this->db->trans_status() === FALSE) {
+				$this->db->trans_rollback();
+				$this->_setFlashdata(false, 'Transaction Failed.');
+				$this->_writeLog('AREA_APPROVE', false, ['submission_area_code' => $submissionCode, 'user_update' => $this->session->user->username], $_SERVER);
+			} else {
+				$this->db->trans_commit();
+				$this->_setFlashdata(true, 'Approval Berhasil.');
+				$this->_writeLog('AREA_APPROVE', true, ['submission_area_code' => $submissionCode, 'user_update' => $this->session->user->username], $_SERVER);
+			}
+
+			return redirect('area/approve');
+		} catch (\Throwable $th) {
+			$this->_setFlashdata(false, 'INTERNAL SERVER ERROR');
+			$this->_writeLog('AREA_APPROVE', false, ['submission_area_code' => $submissionCode, 'user_update' => $this->session->user->username], $_SERVER);
+
+			return redirect('area/approve');
 		}
 	}
 
