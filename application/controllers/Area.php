@@ -486,20 +486,20 @@ class Area extends CI_Controller
 				$data[] = [
 					$no++,
 					$value->submission_area_code,
-					$value->status_approval == "PENDING" 
-					? "<span style='color: red;'><b>" . $value->status_approval . "</b></span>"
-					: "<span clas='fw-bold'>" . $value->status_approval . "</span>",
+					$value->status_approval == "PENDING"
+						? "<span style='color: red;'><b>" . $value->status_approval . "</b></span>"
+						: "<span clas='fw-bold'>" . $value->status_approval . "</span>",
 					$value->area_name . ' <small>#' . $value->area_code . '</small>',
 					$value->submitter_name,
 					date('d F Y H:i', strtotime($value->start_date)),
 					date('d F Y H:i', strtotime($value->end_date)),
 					$value->user_notes,
 					$value->pic_area,
-					$value->status_approval == "PENDING" 
-					? '<div class="d-flex align-items-center justify-content-center">
+					$value->status_approval == "PENDING"
+						? '<div class="d-flex align-items-center justify-content-center">
 							<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>
-						</div>' 
-					: '<div class="d-flex align-items-center justify-content-center">
+						</div>'
+						: '<div class="d-flex align-items-center justify-content-center">
 							<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/0') . '" class="btn btn-danger btn-sm rounded-pill">Disapprove</a>
 						</div>'
 				];
@@ -545,11 +545,11 @@ class Area extends CI_Controller
 			if ($isApprove == 1) {
 				$this->db->set('status_approval', 'APPROVED');
 			}
-			
+
 			$this->db->set('user_update', $this->session->user->username);
 			$this->db->update('tb_submission_area');
 
-			if ($this->db->trans_status() === FALSE) {
+			if ($this->db->trans_status() === false) {
 				$this->db->trans_rollback();
 				$this->_setFlashdata(false, 'Transaction Failed.');
 				$this->_writeLog('AREA_APPROVE', false, ['submission_area_code' => $submissionCode, 'user_update' => $this->session->user->username], $_SERVER);
@@ -587,6 +587,134 @@ class Area extends CI_Controller
 		$data['content'] = $this->load->view('area/schedule', $data, true);
 
 		$this->load->view('template', $data);
+	}
+
+	public function checkout()
+	{
+		$data['title'] = 'Checkout';
+		$data['module'] = 'Area Page';
+		$data['datatables'] = base_url('area/checkout_tables');
+		$data['content'] = $this->load->view('area/checkout', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function checkout_tables()
+	{
+		$post = $this->input->post();
+		$search = $post['search']['value'];
+
+		$result = $this->Area_m->getBookingByUserSubmit($this->session->user->username, $search);
+
+		if ($result) {
+
+			$data = [];
+			$no = 1;
+			foreach ($result as $key => $value) {
+				$data[] = [
+					$no++,
+					$value->submission_area_code,
+					$value->area_name,
+					$value->submitter_name,
+					date('d F Y H:i', strtotime($value->start_date)),
+					date('d F Y H:i', strtotime($value->end_date)),
+					date('d F Y H:i', strtotime($value->created_at)),
+					in_array($value->is_checkout, [0, '', null]) 
+					? '<div class="d-flex align-items-center justify-content-center">
+						<a href="' . base_url('area/form_checkout/' . $value->submission_area_code) . '" class="btn btn-primary btn-sm rounded-pill">Checkout</a>
+					</div>'
+					: '<div class="d-flex align-items-center justify-content-center">
+						<a href="#" class="btn btn-secondary btn-sm rounded-pill">Done</a>
+					</div>'
+				];
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => count($result),
+				'recordsFiltered' => count($result),
+				'data' => $data,
+				'post' => $this->input->post()
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	public function getDataCheckout($bookingCode)
+	{
+		$data = $this->repository->findFirst('tb_submission_area', ['submission_area_code' => $bookingCode], 'area_code, user_submit');
+
+		return $data;
+	}
+
+	public function form_checkout($bookingCode)
+	{
+		$data['title'] = 'Checkout';
+		$data['module'] = 'Area Page';
+		$data['booking'] = $this->getDataCheckout($bookingCode);
+		$data['bookingCode'] = $bookingCode;
+		$data['content'] = $this->load->view('area/form_checkout', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function do_checkout($bookingCode)
+	{
+		$post = $this->input->post();
+
+		if (in_array($post['signaturePhoto'], ['', null])) {
+			$this->_setFlashdata(false, 'Wajib Tanda Tangan.');
+			return redirect('/area/form_checkout/' . $bookingCode);
+		}
+
+		$signature = $post['signaturePhoto'];
+
+		$getBookingData = $this->db->select('a.area_code')
+			->from('tb_submission_area AS a')
+			->where('a.submission_area_code', $bookingCode)
+			->get()->row();
+
+		$area = $getBookingData->area_code;
+
+		// Generate checkout_code
+		$this->db->select_max('id_checkout_area');
+		$query = $this->db->get('tb_checkout_area');
+		$row = $query->row();
+		$id = (($row->id_checkout_area == null) ? 0 : $row->id_checkout_area) + 1;
+		$checkoutCode = 'CO' . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+		$data = [
+			'checkout_code' => $checkoutCode,
+			'submission_area_code' => $bookingCode,
+			'area_code' => $area,
+			'user_submit' => $this->session->user->username,
+			'signature' => $signature
+		];
+
+		$this->db->trans_begin();
+		$this->db->insert('tb_checkout_area', $data);
+		$this->db->update('tb_submission_area', ['is_checkout' => 1], ['submission_area_code' => $bookingCode]);
+
+		if ($this->db->trans_status() === false) {
+			$this->db->trans_rollback();
+			$this->_setFlashdata(false, 'Transaction Failed.');
+			$this->_writeLog('AREA_CHECKOUT', false, ['message' => 'Transaction Failed.'], $_SERVER);
+
+			return redirect('area/form_checkout/' . $bookingCode);
+		}
+
+		$this->db->trans_commit();
+		$this->_setFlashdata(true, 'Checkout Berhasil.');
+		$this->_writeLog('AREA_CHECKOUT', true, ['message' => 'Checkout Berhasil.'], $_SERVER);
+		return redirect('area/checkout');
 	}
 
 }

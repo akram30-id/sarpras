@@ -160,4 +160,25 @@ class Area_m extends CI_Model
 
 		return $query;
 	}
+
+	function getBookingByUserSubmit($user, $search = null)
+	{
+		$this->db->select('a.*, b.area_name, b.pic_area, c.name AS submitter_name');
+		$this->db->from('tb_submission_area AS a');
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
+		if (!in_array($search, ['', null])) {
+			$this->db->like('b.area_name', $search);
+		}
+		if ($this->session->user->role != 1) {
+			$this->db->where('a.user_submit', $user);
+			if (!in_array($search, ['', null])) {
+				$this->db->or_like('c.name', $search);
+			}
+		}
+		$query = $this->db->get()->result();
+
+		return $query;
+	}
+
 }

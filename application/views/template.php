@@ -180,6 +180,11 @@
               <i class="bi bi-circle"></i><span>Approval Booking Area</span>
             </a>
           </li>
+					<li>
+            <a href="<?= base_url('area/checkout') ?>">
+              <i class="bi bi-circle"></i><span>Checkout</span>
+            </a>
+          </li>
         </ul>
       </li><!-- End Area Nav -->
 
