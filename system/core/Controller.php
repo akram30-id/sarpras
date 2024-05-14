@@ -39,6 +39,8 @@
  */
 defined('BASEPATH') or exit('No direct script access allowed');
 
+#[\AllowDynamicProperties]
+
 /**
  * Application Controller Class
  *
@@ -114,7 +116,7 @@ class CI_Controller
 		return md5('hFO@2024' . $pwd);
 	}
 
-	protected function _writeLog($type = 'LOGIN', $status, array $content, $header)
+	protected function _writeLog($type = 'LOGIN', $status = true, $content = [], $header = [])
 	{
 		$logData = [
 			'status' => $status,
