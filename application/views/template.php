@@ -194,35 +194,41 @@
         </a>
         <ul id="inventory-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
           <li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('item/master') ?>">
               <i class="bi bi-circle"></i><span>Master Item</span>
             </a>
           </li>
 					<li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('item/master?area=1') ?>">
               <i class="bi bi-circle"></i><span>Master Item Area</span>
             </a>
           </li>
+					<?php if (in_array($this->session->user->role, [1,2])){ ?>
+						<li>
+							<a href="<?= base_url('item/add') ?>">
+								<i class="bi bi-circle"></i><span>Tambah Item</span>
+							</a>
+						</li>
+					<?php } ?>
 					<li>
-            <a href="components-alerts.html">
-              <i class="bi bi-circle"></i><span>Tambah Item</span>
-            </a>
-          </li>
-					<li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('item/request') ?>">
               <i class="bi bi-circle"></i><span>Request Pinjam Item</span>
             </a>
           </li>
-					<li>
-            <a href="components-alerts.html">
-              <i class="bi bi-circle"></i><span>Approval Item Pinjaman</span>
-            </a>
-          </li>
-					<li>
-            <a href="components-alerts.html">
-              <i class="bi bi-circle"></i><span>Destroy Item</span>
-            </a>
-          </li>
+					<?php if (in_array($this->session->user->role, [1,2])){ ?>
+						<li>
+							<a href="<?= base_url('item/approve') ?>">
+								<i class="bi bi-circle"></i><span>Approval Item Pinjaman</span>
+							</a>
+						</li>
+					<?php } ?>
+					<?php if ($this->session->user->role == "1"){ ?>
+						<li>
+							<a href="<?= base_url('item/destroy') ?>">
+								<i class="bi bi-circle"></i><span>Destroy Item</span>
+							</a>
+						</li>
+					<?php } ?>
         </ul>
       </li><!-- End Inventaris Nav -->
 
