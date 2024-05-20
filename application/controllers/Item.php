@@ -7,6 +7,7 @@ class Item extends CI_Controller
 	function __construct()
 	{
 		parent::__construct();
+		$this->load->model('Item_m');
 	}
 
 	public function master()
@@ -278,6 +279,91 @@ class Item extends CI_Controller
 
 			return redirect('item/update_stok/' . $itemCode);
 		}
+	}
+	
+	public function request()
+	{
+		$data['title'] = 'Request Item';
+		$data['module'] = 'Item Page';
+		$data['findItem'] = base_url('item/find_item');
+		$data['findItemQty'] = base_url('item/get_qty');
+		$data['content'] = $this->load->view('item/request', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function find_item()
+	{
+		$get = $this->input->get();
+
+		$this->db->select('a.item_code, a.inventory_name');
+		$this->db->from('tb_master_item AS a');
+
+		if (!in_array($get['search'], [null, ""])) {
+			$this->db->like('a.item_code', $get['search']);
+			$this->db->or_like('a.inventory_name', $get['search']);
+		}
+
+		$this->db->limit(100);
+
+		$result = $this->db->get()->result();
+
+		$data = [];
+
+		foreach ($result as $key => $value) {
+			$data[] = $value->item_code . ' - ' . $value->inventory_name;
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($data));
+	}
+
+	public function do_request()
+	{
+		$post = $this->input->post();
+		$headers = $_SERVER;
+
+		$getQty = $this->Item_m->search_qty($post);
+
+		if ($post['qty'] > $getQty->qty) {
+			$this->_setFlashdata(false, 'QTY request tidak boleh lebih dari ' . $getQty->qty);
+			return redirect('item/request');
+		}
+
+		try {
+			$save = $this->Item_m->saveRequest($post);
+
+			if ($save['success'] == false) {
+				$this->_setFlashdata(false, $save['message']);
+				$post['message'] = $save['message'];
+				$this->_writeLog('ITEM_REQ', false, $post, $headers);
+				return redirect('item/request');
+			}
+
+			$this->_setFlashdata(true, 'Request item berhasil.');
+			$this->_writeLog('ITEM_REQ', true, $post, $headers);
+			return redirect('item/request');
+
+		} catch (\Throwable $th) {
+			$this->_setFlashdata(false, 'Internal Server Error');
+			$post['error_message'] = $th->getMessage();
+			$post['error_line'] = $th->getLine();
+			$this->_writeLog('ITEM_REQ', false, $post, $headers);
+
+			return redirect('item/request');
+		}
+	}
+
+	public function get_qty()
+	{
+		$post = $this->input->post();
+
+		$result = $this->Item_m->search_qty($post);
+
+		if (!$result) {
+			$result = 0;
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($result));
 	}
 
 }
