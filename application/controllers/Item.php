@@ -8,6 +8,7 @@ class Item extends CI_Controller
 	{
 		parent::__construct();
 		$this->load->model('Item_m');
+		$this->load->library('pdfgenerator');
 	}
 
 	public function master()
@@ -285,6 +286,108 @@ class Item extends CI_Controller
 	{
 		$data['title'] = 'Request Item';
 		$data['module'] = 'Item Page';
+		$data['datatables'] = base_url('item/datatablesRequest');
+		$data['content'] = $this->load->view('item/show_submission', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function datatablesRequest()
+	{
+		$post = $this->input->post();
+		$search = $post['search']['value'];
+
+		$this->db->select('a.*, b.inventory_name, b.unit_qty');
+		$this->db->from('tb_submission_item AS a');
+		$this->db->join('tb_master_item AS b', 'a.item_code=b.item_code');
+
+		if ($this->session->user->role != 1) { // kalo role nya selain admin, cuma boleh akses yg dia submit aja
+			$this->db->where('a.user_submit', $this->session->user->username);
+		}
+		
+		if ($search) {
+			$this->db->like('b.inventory_name', $search);
+			$this->db->or_like('a.item_code', $search);
+		}
+
+		$masterItems = $this->db->get()->result();
+
+		$data = [];
+
+		if ($masterItems) {
+			$no = 1;
+			foreach ($masterItems as $key => $value) {
+				$data[] = [
+					$no++,
+					$value->item_code,
+					$value->inventory_name,
+					($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty,
+					date('d F Y H:i', strtotime($value->start_date)),
+					date('d F Y H:i', strtotime($value->end_date)),
+					$value->user_notes,
+					date('d F Y H:i', strtotime($value->created_at)),
+					$value->user_submit,
+					(($this->session->user->role == 1 || $this->session->user->username == $value->user_submit) && date('Y-m-d H:i', strtotime($value->end_date)) > date('Y-m-d H:i'))
+						? '<div class="d-flex align-items-center justify-content-center">
+								<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
+									Cancel
+								</button>
+								<a href="' . base_url('item/report/' . $value->submission_item_code) . '" class="btn btn-sm btn-secondary rounded-pill">
+									Laporan
+								</a>
+							</div>
+							<div class="flex mt-2">
+								<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
+									<div class="card card-body pt-2" style="font-size: 9pt;">
+										Apakah Anda yakin?
+										<div class="d-flex justify-content-end">
+											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
+											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
+										</div>
+									</div>
+								</div>
+							</div>'
+						: '<div class="d-flex align-items-center justify-content-center">
+								<a href="' . base_url('item/report/' . $value->submission_item_code) . '" class="btn btn-sm btn-secondary rounded-pill">
+									Laporan
+								</a>
+							</div>
+							<div class="flex mt-2">
+								<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
+									<div class="card card-body pt-2" style="font-size: 9pt;">
+										Apakah Anda yakin?
+										<div class="d-flex justify-content-end">
+											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
+											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
+										</div>
+									</div>
+								</div>
+							</div>'
+				];
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => count($masterItems),
+				'recordsFiltered' => count($masterItems),
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	public function form_request()
+	{
+		$data['title'] = 'Request Item';
+		$data['module'] = 'Item Page';
 		$data['findItem'] = base_url('item/find_item');
 		$data['findItemQty'] = base_url('item/get_qty');
 		$data['content'] = $this->load->view('item/request', $data, true);
@@ -326,7 +429,7 @@ class Item extends CI_Controller
 
 		if ($post['qty'] > $getQty->qty) {
 			$this->_setFlashdata(false, 'QTY request tidak boleh lebih dari ' . $getQty->qty);
-			return redirect('item/request');
+			return redirect('item/form_request');
 		}
 
 		try {
@@ -336,12 +439,12 @@ class Item extends CI_Controller
 				$this->_setFlashdata(false, $save['message']);
 				$post['message'] = $save['message'];
 				$this->_writeLog('ITEM_REQ', false, $post, $headers);
-				return redirect('item/request');
+				return redirect('item/form_request');
 			}
 
 			$this->_setFlashdata(true, 'Request item berhasil.');
 			$this->_writeLog('ITEM_REQ', true, $post, $headers);
-			return redirect('item/request');
+			return redirect('item/form_request');
 
 		} catch (\Throwable $th) {
 			$this->_setFlashdata(false, 'Internal Server Error');
@@ -349,7 +452,7 @@ class Item extends CI_Controller
 			$post['error_line'] = $th->getLine();
 			$this->_writeLog('ITEM_REQ', false, $post, $headers);
 
-			return redirect('item/request');
+			return redirect('item/form_request');
 		}
 	}
 
@@ -364,6 +467,310 @@ class Item extends CI_Controller
 		}
 
 		$this->output->set_content_type('application/json')->set_output(json_encode($result));
+	}
+
+	public function cancel($requestCode)
+	{
+		$headers = $_SERVER;
+
+		$getQTY = $this->repository->findFirst('tb_submission_item', ['submission_item_code' => $requestCode], 'qty, item_code');
+		$qty = $getQTY->qty;
+		$itemCode = $getQTY->item_code;
+
+		$getMasterItemQTY = $this->repository->findFirst('tb_master_item', ['item_code' => $itemCode], 'qty');
+
+		$totalQTY = intval($getMasterItemQTY->qty) + $qty;
+
+		$this->db->trans_begin();
+		$updateItemQTY = $this->repository->update('tb_master_item', [
+			'qty' => $totalQTY
+		], [
+			'item_code' => $itemCode
+		]);
+
+		$deleteRequest = $this->repository->delete('tb_submission_item', ['submission_item_code' => $requestCode]);
+
+		if ($this->db->trans_status() == false) {
+			$this->db->trans_rollback();
+			$this->_setFlashdata(false, 'Transaction Failed');
+		} else {
+			$this->db->trans_commit();
+			$this->_setFlashdata(true, 'Cancel sukses.');
+			$this->_writeLog('ITEM_REQ_CANCEL', true, $headers, ['submission_item_code' => $requestCode]);
+		}
+
+		return redirect('item/request');
+	}
+
+	public function report($requestCode)
+	{
+		$data['title'] = 'Report Item Bermasalah';
+		$data['module'] = 'Item Page';
+		$data['request_code'] = $requestCode;
+		$data['content'] = $this->load->view('item/form_report', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function do_report($requestCode)
+	{
+		$post = $this->input->post();
+		$headers = $_SERVER;
+
+		$evidence = $_FILES['evidence'];
+
+		if (!in_array($evidence['name'], [null, ""])) {
+			if ($evidence['size'] > 1048576) {
+				$this->_setFlashdata(false, 'Ukuran foto tidak boleh lebih dari 1 MB.');
+				return redirect('item/report');
+			}
+	
+			// ambil image extension
+			$extension = explode('.', $evidence['name']);
+			$extension = $extension[1];
+	
+			// Konversi gambar ke base64
+			$base64_image = 'data:image/' . $extension . ';base64,' . base64_encode(file_get_contents($evidence['tmp_name']));
+		} else {
+			$base64_image = null;
+		}
+
+		$data = [];
+
+		if ($post['type'] == 'broken') {
+			// Generate item_code
+			$this->db->select_max('id_broken_item');
+			$query = $this->db->get('tb_broken_item');
+
+			$row = $query->row();
+			$id = (($row->id_broken_item == null) ? 0 : $row->id_broken_item) + 1;
+			$reportCode = 'BRKN' . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+			$data = [
+				'request_code' => $requestCode,
+				'broken_item_code' => $reportCode,
+				'user_submit' => $this->session->user->username,
+				'reason' => $post['reason'],
+				'broken_date' => $post['broken_date'],
+				'evidence' => $base64_image
+			];
+		} else if ($post['type'] == 'lost') {
+			$this->db->select_max('id_item_lost');
+			$query = $this->db->get('tb_item_lost');
+			
+			$row = $query->row();
+			$id = (($row->id_item_lost == null) ? 0 : $row->id_item_lost) + 1;
+			$reportCode = 'LOST' . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+			$data = [
+				'request_code' => $requestCode,
+				'broken_item_code' => $reportCode,
+				'user_submit' => $this->session->user->username,
+				'reason' => $post['reason'],
+				'broken_date' => $post['broken_date'],
+				'evidence' => $base64_image
+			];
+		} else {
+			$this->_setFlashdata(false, 'Invalid report type.');
+			return redirect('item/report');
+		}
+
+		$this->db->trans_begin();
+
+		if ($post['type'] == 'broken') {
+			$this->db->insert('tb_broken_item', $data);
+		} else if ($post['type'] == 'lost') {
+			$this->db->insert('tb_item_lost', $data);
+		} else {
+			$this->_setFlashdata(false, 'Invalid Cancel Type.');
+			return redirect('item/report/' . $requestCode);
+		}
+
+		if ($this->db->trans_status() === false) {
+			$this->db->trans_rollback();
+			$this->_setFlashdata(false, 'Transaction Failed.');
+			$this->_writeLog('REPORT_ADD', false, $post, $headers);
+		} else {
+			$this->db->trans_commit();
+			$this->_setFlashdata(true, 'Report berhasil dikirim.');
+			$this->_writeLog('REPORT_ADD', true, $post, $headers);
+		}
+
+		return redirect('item/report/' . $requestCode);
+	}
+
+	public function show_report()
+	{
+		$data['title'] = 'Data Report';
+		$data['module'] = 'Item Page';
+		$data['datatables'] = base_url('item/datatablesReport');
+		$data['content'] = $this->load->view('item/report', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	private function _getBrokenReport($search = [])
+	{
+		$this->db->select('a.*, b.item_code, c.inventory_name');
+		$this->db->from('tb_broken_item AS a');
+		$this->db->join('tb_submission_item AS b', 'a.request_code=b.submission_item_code');
+		$this->db->join('tb_master_item AS c', 'b.item_code=c.item_code');
+
+		if ($this->session->user->role != 1) { // kalo role nya bukan admin, cuma boleh akses yg dia submit aja
+			$this->db->where('a.user_submit', $this->session->user->username);
+		}
+		
+		if (!empty($search) || !in_array($search, ['', null])) {
+			$this->db->like('c.inventory_name', $search);
+			$this->db->or_like('b.item_code', $search);
+		}
+
+		$result = $this->db->get()->result();
+
+		return $result;
+	}
+
+	private function _getLostReport($search)
+	{
+		$this->db->select('a.*, b.item_code, c.inventory_name');
+		$this->db->from('tb_item_lost AS a');
+		$this->db->join('tb_submission_item AS b', 'a.request_code=b.submission_item_code');
+		$this->db->join('tb_master_item AS c', 'b.item_code=c.item_code');
+
+		if ($this->session->user->role != 1) { // kalo role nya bukan admin, cuma boleh akses yg dia submit aja
+			$this->db->where('a.user_submit', $this->session->user->username);
+		}
+		
+		if ($search) {
+			$this->db->like('c.inventory_name', $search);
+			$this->db->or_like('b.item_code', $search);
+		}
+
+		$result = $this->db->get()->result();
+
+		return $result;
+	}
+
+	public function datatablesReport()
+	{
+		$post = $this->input->post();
+		$search = $post['search']['value'];
+
+		$getBrokenReport = $this->_getBrokenReport($search);
+		$getLostReport = $this->_getLostReport($search);
+
+		$data = [];
+		$masterReport = [];
+
+		if ($getBrokenReport) {
+			foreach ($getBrokenReport as $key => $value) {
+				$value->report_type = 'RUSAK';
+				$value->report_code = $value->broken_item_code;
+				$value->report_date = $value->broken_date;
+				$masterReport[] = $value;
+			}
+		}
+
+		if ($getLostReport) {
+			foreach ($getLostReport as $key => $value) {
+				$value->report_type = 'HILANG';
+				$value->report_code = $value->item_lost_code;
+				$value->report_date = $value->lost_date;
+				$masterReport[] = $value;
+			}
+		}
+
+		if ($masterReport) {
+			$no = 1;
+			foreach ($masterReport as $key => $value) {
+				$data[] = [
+					$no++,
+					$value->report_code,
+					$value->item_code,
+					$value->inventory_name,
+					$value->report_type,
+					$value->reason,
+					'<img src="' . $value->evidence . '" height="32"></img>',
+					date('d F Y', strtotime($value->report_date)),
+					$value->user_submit,
+					'<div class="d-flex align-items-center justify-content-center">
+						<a href="' . base_url('item/print_report/' . $value->report_type . '/' . $value->report_code) . '" class="btn btn-primary btn-sm rounded-pill" target="_blank">Cetak</a>
+					</div>'
+				];
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => count($masterReport),
+				'recordsFiltered' => count($masterReport),
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	public function print_report($type, $reportCode)
+	{
+		if ($type == 'RUSAK') {
+			// title dari pdf
+			$this->data['title_pdf'] = 'BERITA ACARA KERUSAKAN BARANG MILIK YAYASAN';
+		}
+
+		if ($type == 'HILANG') {
+			// title dari pdf
+			$this->data['title_pdf'] = 'BERITA ACARA KEHILANGAN BARANG MILIK YAYASAN';
+		}
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = $reportCode;
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.username, b.name, c.role, d.role_name, f.inventory_name, e.item_code, e.qty, f.unit_qty');
+
+        if ($type == 'RUSAK') {
+			$this->db->from('tb_broken_item AS a');
+		}
+
+		if ($type == 'HILANG') {
+			$this->db->from('tb_item_lost AS a');
+		}
+
+		$this->db->join('tb_profile AS b', 'a.user_submit=b.username');
+		$this->db->join('tb_user AS c', 'b.username=c.username');
+		$this->db->join('tb_roles AS d', 'c.role=d.role');
+		$this->db->join('tb_submission_item AS e', 'a.request_code=e.submission_item_code');
+		$this->db->join('tb_master_item AS f', 'e.item_code=f.item_code');
+		$this->db->where('a.broken_item_code', $reportCode);
+		
+		$report = $this->db->get()->row();
+
+        // echo '<pre>';
+        // print_r($report);
+        // die();
+
+        $data = [
+            'title' => 'BERITA ACARA',
+			'subtitle' => $this->data['title_pdf'],
+			'type' => $type,
+            'report' => $report
+        ];
+
+        $html = $this->load->view('item/print_report', $data, true);	    
+		// $this->load->view('item/print_report', $data, false);	    
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
 	}
 
 }

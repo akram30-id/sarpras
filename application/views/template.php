@@ -215,7 +215,12 @@
               <i class="bi bi-circle"></i><span>Request Pinjam Item</span>
             </a>
           </li>
-					<?php if (in_array($this->session->user->role, [1,2])){ ?>
+					<li>
+            <a href="<?= base_url('item/show_report') ?>">
+              <i class="bi bi-circle"></i><span>Report Item Hilang/Rusak</span>
+            </a>
+          </li>
+					<?php if (in_array($this->session->user->role, [1])){ ?>
 						<li>
 							<a href="<?= base_url('item/approve') ?>">
 								<i class="bi bi-circle"></i><span>Approval Item Pinjaman</span>

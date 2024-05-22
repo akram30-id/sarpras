@@ -44,4 +44,13 @@ class Repository extends CI_Model
 		return $save;
 	}
 
+	public function update($table, $set = [], $where = [])
+	{
+		$this->db->set($set);
+		$this->db->where($where);
+		$update = $this->db->update($table);
+
+		return $update;
+	}
+
 }
