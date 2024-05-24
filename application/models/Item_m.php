@@ -25,8 +25,10 @@ class Item_m extends CI_Model
 			'user_submit' => $this->session->user->username,
 			'start_date' => date('Y-m-d H:i:s', strtotime($post['start_date'] . ' ' . $post['start_clock'])),
 			'end_date' => date('Y-m-d H:i:s', strtotime($post['end_date'] . ' ' . $post['end_clock'])),
-			'user_notes' => $post['user_notes']
+			'user_notes' => $post['user_notes'],
+			'qty' => $post['qty']
 		];
+		
 		$this->db->trans_begin();
 		$this->db->insert('tb_submission_item', $data);
 
