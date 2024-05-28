@@ -9,6 +9,8 @@ class Item extends CI_Controller
 		parent::__construct();
 		$this->load->model('Item_m');
 		$this->load->library('pdfgenerator');
+
+		$this->_cekLogin();
 	}
 
 	public function master()
@@ -310,6 +312,8 @@ class Item extends CI_Controller
 			$this->db->or_like('a.item_code', $search);
 		}
 
+		$this->db->order_by('a.id_submission_item', 'DESC');
+
 		$masterItems = $this->db->get()->result();
 
 		$data = [];
@@ -317,8 +321,20 @@ class Item extends CI_Controller
 		if ($masterItems) {
 			$no = 1;
 			foreach ($masterItems as $key => $value) {
+				$getReturnApproval = $this->db->select('a.id_return_item')
+												->from('tb_approval_item AS a')
+												->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item')
+												->where('b.submission_item_code', $value->submission_item_code)
+												->where_in('a.status_approval', ['APPROVE', 'REJECT'])
+												->get()->row();
+
+				if ($getReturnApproval) { // kalo barangnya udah dibalikin dan udah diapprove
+					continue;
+				}
+
 				$data[] = [
 					$no++,
+					$value->submission_item_code,
 					$value->item_code,
 					$value->inventory_name,
 					($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty,
@@ -444,7 +460,7 @@ class Item extends CI_Controller
 
 			$this->_setFlashdata(true, 'Request item berhasil.');
 			$this->_writeLog('ITEM_REQ', true, $post, $headers);
-			return redirect('item/form_request');
+			return redirect('item/request');
 
 		} catch (\Throwable $th) {
 			$this->_setFlashdata(false, 'Internal Server Error');
@@ -564,10 +580,10 @@ class Item extends CI_Controller
 
 			$data = [
 				'request_code' => $requestCode,
-				'broken_item_code' => $reportCode,
+				'item_lost_code' => $reportCode,
 				'user_submit' => $this->session->user->username,
 				'reason' => $post['reason'],
-				'broken_date' => $post['broken_date'],
+				'lost_date' => $post['broken_date'],
 				'evidence' => $base64_image
 			];
 		} else {
@@ -751,7 +767,14 @@ class Item extends CI_Controller
 		$this->db->join('tb_roles AS d', 'c.role=d.role');
 		$this->db->join('tb_submission_item AS e', 'a.request_code=e.submission_item_code');
 		$this->db->join('tb_master_item AS f', 'e.item_code=f.item_code');
-		$this->db->where('a.broken_item_code', $reportCode);
+
+		if ($type == 'HILANG') {
+			$this->db->where('a.item_lost_code', $reportCode);
+		}
+
+		if ($type == 'RUSAK') {
+			$this->db->where('a.broken_item_code', $reportCode);
+		}
 		
 		$report = $this->db->get()->row();
 
@@ -771,6 +794,329 @@ class Item extends CI_Controller
         
         // run dompdf
         $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
+	public function return()
+	{
+		$data['title'] = 'Kembalikan Barang';
+		$data['module'] = 'Item Page';
+		$data['urlRequest'] = base_url('item/find_request');
+		$data['urlQTY'] = base_url('item/get_qty_request');
+		$data['content'] = $this->load->view('item/form_return', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function find_request()
+	{
+		$get = $this->input->get();
+
+		$this->db->select('a.submission_item_code, b.inventory_name, a.qty, b.unit_qty');
+		$this->db->from('tb_submission_item AS a');
+		$this->db->join('tb_master_item AS b', 'a.item_code=b.item_code');
+
+		if (!in_array($get['search'], [null, ""])) {
+			$this->db->like('a.submission_item_code', $get['search']);
+			$this->db->or_like('b.inventory_name', $get['search']);
+		}
+
+		if ($this->session->user->role != 1) {
+			$this->db->where('a.user_submit', $this->session->user->username);
+		}
+
+		// $this->db->order_by('a.id_submission_item', 'DESC');
+
+		$this->db->limit(100);
+
+		$result = $this->db->get()->result();
+
+		$data = [];
+
+		foreach ($result as $key => $value) {
+			$cekReturn = $this->db->select('submission_item_code')->from('tb_return_item')->where('submission_item_code', $value->submission_item_code)->get()->row();
+			if ($cekReturn) { // kalo ternyata udah pernah diajukan approve
+				// skip aja
+				continue;
+			} else {
+				$data[] = $value->submission_item_code . ' - ' . $value->inventory_name;
+			}
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($data));
+	}
+
+	public function get_qty_request()
+	{
+		$post = $this->input->post();
+
+		$search = $post['search'];
+		$explode = explode(' - ', $search);
+		$search = $explode[0];
+
+		$this->db->select('a.qty, b.unit_qty');
+		$this->db->from('tb_submission_item AS a');
+		$this->db->join('tb_master_item AS b', 'a.item_code=b.item_code');
+		$this->db->where('a.submission_item_code', $search);
+
+		$result = $this->db->get()->row();
+
+		if (!$result) {
+			$result = 0;
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($result));
+	}
+
+	public function do_return()
+	{
+		$post = $this->input->post();
+		$headers = $_SERVER;
+
+		// Generate return_item_code
+		$this->db->select_max('id_return_item');
+		$query = $this->db->get('tb_return_item');
+		$row = $query->row();
+		$id = (($row->id_return_item == null) ? 0 : $row->id_return_item) + 1;
+		$returnItemCode = 'RTN' . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+		$requestCode = $post['request'];
+		$explode = explode(' - ', $requestCode);
+		$requestCode = $explode[0];
+
+		$this->db->trans_begin();
+		$save = $this->db->insert('tb_return_item', [
+			'return_item_code' => $returnItemCode,
+			'submission_item_code' => $requestCode,
+			'return_date' => date('Y-m-dTH:i:s'),
+			'user_submit' => $this->session->user->username,
+			'signature' => $post['signature'],
+			'user_notes' => $post['user_notes']
+		]);
+
+		$lastId = $this->db->insert_id();
+
+		$saveApproval = $this->db->insert('tb_approval_item', [
+			'id_return_item' => $lastId,
+			'status_approval' => 'PENDING',
+			'approval_item_flag' => 2,
+			'user_input' => $this->session->user->username
+		]);
+
+		if ($this->db->trans_status() === false) {
+			$this->db->trans_rollback();
+			$this->_setFlashdata(false, 'Transaction Failed.');
+			$this->_writeLog('ITEM_RTN', false, $post, $headers);
+		} else {
+			$this->db->trans_commit();
+			$this->_setFlashdata(true, 'Pengembalian berhasil dikirim. Silahkan menunggu approval.');
+			$this->_writeLog('ITEM_RTN', true, $post, $headers);
+		}
+
+		return redirect('item/approve');
+	}
+
+	public function approve()
+	{
+		$data['title'] = 'Approval Item';
+		$data['module'] = 'Item Page';
+		$data['datatables'] = base_url('item/datatablesApprove/return');
+		$data['datatablesRequest'] = base_url('item/datatablesApprove/request');
+		$data['content'] = $this->load->view('item/approval', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	private function masterReturn($where = [], $search = null, $post = null)
+	{
+		if ($post == 'return') {
+			$this->db->select('a.*, b.return_item_code, b.user_notes, b.user_submit, b.signature, c.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
+			$this->db->from('tb_approval_item AS a');
+			$this->db->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item');
+			$this->db->join('tb_submission_item AS c', 'b.submission_item_code=c.submission_item_code');
+			$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
+		}
+
+		if ($post != null && $post == 'request') {
+			$this->db->select('a.*, b.user_notes, b.user_submit, b.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
+			$this->db->from('tb_approval_item AS a');
+			$this->db->join('tb_submission_item AS b', 'a.submission_item_code=b.submission_item_code');
+			$this->db->join('tb_master_item AS d', 'b.item_code=d.item_code');
+		}
+
+		if (!empty($where)) {
+			$this->db->where($where);
+		}
+		
+		if ($search) {
+			$this->db->like('d.inventory_name', $search);
+			$this->db->or_like('d.item_code', $search);
+			$this->db->or_like('b.user_notes', $search);
+			$this->db->or_like('a.user_input', $search);
+		}
+
+		$this->db->order_by('a.id_approval_item', 'DESC');
+
+		$masterReturn = $this->db->get()->result();
+
+		return $masterReturn;
+	}
+
+	public function datatablesApprove($postType)
+	{
+		$post = $this->input->post();
+		$search = $post['search']['value'];
+
+		$masterReturn = $this->masterReturn([], $search, $postType);
+
+		$data = [];
+
+		if ($masterReturn) {
+			$no = 1;
+			$isPIC = false;
+			foreach ($masterReturn as $key => $value) {
+				$areaCode = $value->area_code;
+
+				if ($areaCode != null) {
+					$getPIC = $this->db->select('pic_area')
+									->from('tb_master_area')
+									->where('area_code', $areaCode)
+									->get()->row();
+
+					if ($getPIC) {
+						$isPIC = true;
+					}
+				}
+
+				$data[] = [
+					$no++,
+					$value->return_item_code ?? $value->submission_item_code,
+					$value->inventory_name,
+					$value->approval_item_flag == 1 ? 'Request Pinjam' : 'Pengembalian',
+					$value->status_approval,
+					($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty,
+					$value->user_notes,
+					date('d F Y H:i', strtotime($value->created_at)),
+					$value->user_submit,
+					'<img src="' . $value->signature . '" height="32">',
+					$value->user_input,
+					($this->session->user->role == 1 || $isPIC == true)
+						? ($value->status_approval == 'PENDING')
+							?  '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/approve_request/' . $value->id_approval_item) . '/' . $value->approval_item_flag . '" class="btn btn-sm btn-secondary rounded-pill">
+										Approve
+									</a>
+								</div>'
+							: '<p class="text-primary"><i>' . $value->status_approval . '</i></p>'
+						: ''
+				];
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => count($masterReturn),
+				'recordsFiltered' => count($masterReturn),
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));	
+	}
+
+	public function approve_request($idRequest, $type)
+	{
+		if ($type == 1) {
+			$type = 'request';
+		}
+
+		if ($type == 2) {
+			$type = 'return';
+		}
+
+		$masterReturn = $this->masterReturn(['a.id_approval_item' => $idRequest], null, $type);
+
+		$titleType = 'PEGEMBALIAN';
+		if ($masterReturn) {
+			$masterReturnFirst = $masterReturn[0];
+			if ($masterReturnFirst->approval_item_flag == 1) {
+				$titleType = 'PENGAJUAN';
+			}
+		}
+
+		$data['title'] = 'Approval ' . $titleType . ' ' . !isset($masterReturn[0]->return_item_code) ? $masterReturn[0]->submission_item_code : $masterReturn[0]->return_item_code;
+		$data['module'] = 'Item Page';
+		$data['master'] = $masterReturn[0];
+		$data['content'] = $this->load->view('item/approval_request', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function do_approve_request($idApproval)
+	{
+		$post = $this->input->post();
+		$headers = $_SERVER;
+
+		$getApproval = $this->db->select('approval_item_flag')
+								->from('tb_approval_item')
+								->where('id_approval_item', $idApproval)
+								->get()->row();
+
+		$this->db->trans_begin();
+		$saveApproval = $this->db->update('tb_approval_item', [
+			'status_approval' => strtoupper($post['approve_status']),
+			'approval_reason' => $post['user_notes'],
+			'signature' => $post['signature'],
+			'user_input' => $this->session->user->username
+		], ['id_approval_item' => $idApproval]);
+
+		if ($post['approve_status'] == 'approve') { // kalo approve, update stok master nya
+			if ($getApproval->approval_item_flag == 2) { // kalo tipe approval nya pengembalian barang
+				$getQTYPinjaman = $this->db->select('c.qty AS submission_qty, d.qty AS item_qty, d.item_code')
+										->from('tb_approval_item AS a')
+										->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item')
+										->join('tb_submission_item AS c', 'b.submission_item_code=c.submission_item_code')
+										->join('tb_master_item AS d', 'c.item_code=d.item_code')
+										->where('a.id_approval_item', $idApproval)
+										->get()->row();
+
+				$this->db->update('tb_master_item', [
+					'qty' => $getQTYPinjaman->submission_qty + $getQTYPinjaman->item_qty
+				], ['item_code' => $getQTYPinjaman->item_code]);
+			}
+		}
+
+		if ($post['approve_status'] == 'reject') {
+			if ($getApproval->approval_item_flag == 1) { // kalo tipe approval nya peminjaman barang
+				$getQTYPinjaman = $this->db->select('c.qty AS submission_qty, d.qty AS item_qty, d.item_code')
+										->from('tb_approval_item AS a')
+										->join('tb_submission_item AS c', 'a.submission_item_code=c.submission_item_code')
+										->join('tb_master_item AS d', 'c.item_code=d.item_code')
+										->where('a.id_approval_item', $idApproval)
+										->get()->row();
+
+				$this->db->update('tb_master_item', [
+					'qty' => $getQTYPinjaman->submission_qty + $getQTYPinjaman->item_qty
+				], ['item_code' => $getQTYPinjaman->item_code]); // approvalnya reject, stoknya balik
+			}
+		}
+
+		if ($this->db->trans_status() === false) {
+			$this->db->trans_rollback();
+			$this->_setFlashdata(false, 'Transaction Failed.');
+			$this->_writeLog('APPROVE_ITEM', false, $post, $headers);
+		} else {
+			$this->db->trans_commit();
+			$this->_setFlashdata(true, 'Approval berhasil.');
+			$this->_writeLog('APPROVE_ITEM', true, $post, $headers);
+		}
+
+		return redirect('item/approve');
 	}
 
 }
