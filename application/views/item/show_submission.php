@@ -9,6 +9,7 @@
 					<thead>
 						<tr>
 							<th>###</th>
+							<th>REQUEST CODE</th>
 							<th>ITEM CODE</th>
 							<th>ITEM NAME</th>
 							<th>QUANTITY</th>

@@ -30,9 +30,15 @@ class Item_m extends CI_Model
 		];
 		
 		$this->db->trans_begin();
-		$this->db->insert('tb_submission_item', $data);
+		$this->db->insert('tb_submission_item', $data); // insert ke tb_submission_item
 
-		$this->updateStock($post['item'], $post['qty']);
+		$this->db->insert('tb_approval_item', [
+			'status_approval' => 'PENDING',
+			'approval_item_flag' => 1,
+			'submission_item_code' => $submissionItemCode
+		]); // insert ke tb_approval_item
+
+		$this->updateStock($post['item'], $post['qty']); // update stok
 		
 		if ($this->db->trans_status() === FALSE) {
 			$this->db->trans_rollback();
