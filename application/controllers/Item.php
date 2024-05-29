@@ -36,32 +36,57 @@ class Item extends CI_Controller
 		$post = $this->input->post();
 		$search = $post['search']['value'];
 		
+		$this->db->select('a.*, b.area_name, b.pic_area');
+		$this->db->from('tb_master_item AS a');
 		if ($area == 1) {
-			$this->db->select('a.*, b.area_name');
-			$this->db->from('tb_master_item AS a');
 			$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
 			$this->db->where('a.area_code IS NOT NULL');
+
 			if ($search) {
 				$this->db->like('b.area_name', $search);
 				$this->db->or_like('a.inventory_name', $search);
 			}
-
-			$masterItems = $this->db->get()->result();
 		} else {
-			$this->db->select('a.*');
-			$this->db->from('tb_master_item AS a');
+			$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code', 'left');
+			$this->db->where('a.area_code IS NULL');
+
 			if ($search) {
 				$this->db->or_like('a.inventory_name', $search);
 			}
-
-			$masterItems = $this->db->get()->result();
 		}
+
+		$masterItems = $this->db->get()->result();
 
 		$data = [];
 
 		if ($masterItems) {
 			$no = 1;
 			foreach ($masterItems as $key => $value) {
+
+				if ($area == 1) {
+					if ($this->session->user->role == 1 || $this->session->user->username == $value->pic_area) {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/update_stok/' . $value->item_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Update</a>
+									<a href="' . base_url('item/destroy/' . $value->item_code) . '" class="btn btn-danger btn-sm rounded-pill">Destroy</a>
+								</div>';
+					} else {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/form_request/' . $value->item_code) . '" class="btn btn-primary btn-sm rounded-pill">Request</a>
+								</div>';
+					}
+				} else {
+					if ($this->session->user->role == 1) {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/update_stok/' . $value->item_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Update</a>
+									<a href="' . base_url('item/destroy/' . $value->item_code) . '" class="btn btn-danger btn-sm rounded-pill">Destroy</a>
+								</div>';
+					} else {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/form_request/' . $value->item_code) . '" class="btn btn-primary btn-sm rounded-pill">Request</a>
+								</div>';
+					}		
+				}
+
 				$data[] = [
 					($area == 1) ? $value->area_name : $no++,
 					$value->item_code,
@@ -72,13 +97,7 @@ class Item extends CI_Controller
 					$value->description,
 					date('d F Y H:i', strtotime($value->created_at)),
 					$value->user_input,
-					($this->session->user->role == 1 || $this->session->user->username == $value->user_input)
-						? '<div class="d-flex align-items-center justify-content-center">
-							<a href="' . base_url('item/update_stok/' . $value->item_code) . '" class="btn btn-primary btn-sm rounded-pill">Update</a>
-						</div>'
-						: '<div class="d-flex align-items-center justify-content-center">
-							<a href="' . base_url('item/request/' . $value->item_code) . '" class="btn btn-primary btn-sm rounded-pill">Request</a>
-						</div>'
+					$button
 				];
 			}
 
@@ -275,7 +294,7 @@ class Item extends CI_Controller
 				$this->_writeLog('ITEM_UPDATE', true, $post, $headers);
 			}
 
-			return redirect('item/update_stok/' . $itemCode);
+			return redirect('item/master?area=1');
 		} catch (\Throwable $th) {
 			$this->_setFlashdata(false, 'Internal Server Error');
 			$this->_writeLog('ITEM_UPDATE', false, $post, $headers);
@@ -400,27 +419,45 @@ class Item extends CI_Controller
 		$this->output->set_content_type('application/json')->set_output(json_encode($output));
 	}
 
-	public function form_request()
+	public function form_request($itemCode = '')
 	{
+		$itemProp = '';
+		$qty = '';
+		if (!in_array($itemCode, [null, ''])) {
+			$item = $this->db->select('item_code, inventory_name, qty')
+							->from('tb_master_item')
+							->where('item_code', $itemCode)
+							->get()->row();
+
+			$itemProp = $item->item_code . ' - ' . $item->inventory_name;
+			$qty = $item->qty;
+		};
+
 		$data['title'] = 'Request Item';
 		$data['module'] = 'Item Page';
-		$data['findItem'] = base_url('item/find_item');
+		$data['itemProp'] = $itemProp;
+		$data['qty'] = $qty;
+		$data['findItem'] = base_url('item/find_item/' . $itemCode);
 		$data['findItemQty'] = base_url('item/get_qty');
 		$data['content'] = $this->load->view('item/request', $data, true);
 
 		$this->load->view('template', $data);
 	}
 
-	public function find_item()
+	public function find_item($itemCode = '')
 	{
 		$get = $this->input->get();
 
 		$this->db->select('a.item_code, a.inventory_name');
 		$this->db->from('tb_master_item AS a');
+		$this->db->where('a.status', 'AVAILABLE');
+
+		if (!in_array($itemCode, ['', null])) {
+			$this->db->where('a.item_code', $itemCode);
+		}
 
 		if (!in_array($get['search'], [null, ""])) {
-			$this->db->like('a.item_code', $get['search']);
-			$this->db->or_like('a.inventory_name', $get['search']);
+			$this->db->like('a.inventory_name', $get['search']);
 		}
 
 		$this->db->limit(100);
@@ -445,6 +482,11 @@ class Item extends CI_Controller
 
 		if ($post['qty'] > $getQty->qty) {
 			$this->_setFlashdata(false, 'QTY request tidak boleh lebih dari ' . $getQty->qty);
+			return redirect('item/form_request');
+		}
+
+		if ($post['qty'] <= 0) {
+			$this->_setFlashdata(false, 'Quantity tidak boleh nol atau kurang dari nol');
 			return redirect('item/form_request');
 		}
 
@@ -1117,6 +1159,92 @@ class Item extends CI_Controller
 		}
 
 		return redirect('item/approve');
+	}
+
+	private function _moveToDestroy($itemCode)
+	{
+		// Generate destroy code
+		$this->db->select_max('id_item_destroy');
+		$query = $this->db->get('tb_item_destroy');
+		$row = $query->row();
+		$id = (($row->id_item_destroy == null) ? 0 : $row->id_item_destroy) + 1;
+		$destroyCode = 'DST' . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+		$this->db->trans_begin();
+		$this->db->insert('tb_item_destroy', [
+			'item_destroy_code' => $destroyCode,
+			'item_code' => $itemCode,
+			'user_input' => $this->session->user->username
+		]);
+
+		$this->db->update('tb_master_item', [
+			'qty' => 0,
+			'status' => 'UNAVAILALBLE'
+		],['item_code' => $itemCode]);
+
+		if ($this->db->trans_status() === FALSE) {
+			$this->db->trans_rollback();
+			return false;
+		} else {
+			$this->db->trans_commit();
+			return true;
+		}
+	}
+
+	public function destroy($itemCode)
+	{
+		$getArea = $this->db->select('area_code')
+							->from('tb_master_item')
+							->where('item_code', $itemCode)
+							->get()->row();
+
+		if ($getArea) {
+			$areaCode = $getArea->area_code;
+			if ($areaCode == null) { // kalo bukan item area
+				if ($this->session->user->role != 1) { // cek apakah role nya admin atau bukan
+					// bukan admin, gaboleh akses
+					$this->_setFlashdata(false, 'Forbidden Access');
+					return redirect('item/master');
+				} else { // kalo role nya admin
+					$destroy = $this->_moveToDestroy($itemCode); // destroy barangnya
+					if ($destroy) {
+						$this->_setFlashdata(true, 'Destroy inventory berhasil.');
+						$this->_writeLog('DESTROY_ITEM', true, ['item_code' => $itemCode, 'user' => $this->session->user->username, 'message' => 'success'], $_SERVER);
+
+						return redirect('item/master');
+					} else {
+						$this->_setFlashdata(false, 'Destroy inventory gagal.');
+						$this->_writeLog('DESTROY_ITEM', false, ['item_code' => $itemCode, 'user' => $this->session->user->username, 'message' => 'transaction failed'], $_SERVER);
+
+						return redirect('item/master');
+					}
+				}
+			} else { // kalo item area
+				// ambil PIC nya
+				$getPic = $this->db->select('pic_area')
+									->from('tb_master_area')
+									->where('area_code', $areaCode)
+									->get()->row();
+
+				$pic = $getPic->pic_area;
+				
+				// cek apakah pic area nya ada user session
+				if ($pic == $this->session->user->username) { // jika pic area = user session
+					$destroy = $this->_moveToDestroy($itemCode); // destroy barangnya
+					if ($destroy) { // destroy berhasil
+						$this->_setFlashdata(true, 'Destroy inventory berhasil.');
+						$this->_writeLog('DESTROY_ITEM', true, ['item_code' => $itemCode, 'user' => $this->session->user->username, 'message' => 'success'], $_SERVER);
+
+						return redirect('item/master');
+					} else { // destroy gagal
+						$this->_setFlashdata(false, 'Destroy inventory gagal.');
+						$this->_writeLog('DESTROY_ITEM', false, ['item_code' => $itemCode, 'user' => $this->session->user->username, 'message' => 'transaction failed'], $_SERVER);
+
+						return redirect('item/master');
+					}
+				}
+			}
+		}
 	}
 
 }

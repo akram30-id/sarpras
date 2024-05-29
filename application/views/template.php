@@ -232,13 +232,6 @@
 							</a>
 						</li>
 					<?php } ?>
-					<?php if ($this->session->user->role == "1"){ ?>
-						<li>
-							<a href="<?= base_url('item/destroy') ?>">
-								<i class="bi bi-circle"></i><span>Destroy Item</span>
-							</a>
-						</li>
-					<?php } ?>
         </ul>
       </li><!-- End Inventaris Nav -->
 
