@@ -155,16 +155,23 @@
               <i class="bi bi-circle"></i><span>Master Area</span>
             </a>
           </li>
-					<li>
-            <a href="<?= base_url('area/add') ?>">
-              <i class="bi bi-circle"></i><span>Buat Area Baru</span>
-            </a>
-          </li>
-					<li>
-            <a href="<?= base_url('area/assign') ?>">
-              <i class="bi bi-circle"></i><span>Assign PIC Area</span>
-            </a>
-          </li>
+
+					<?php if($this->session->user->role == 1){ ?>
+						<li>
+							<a href="<?= base_url('area/add') ?>">
+								<i class="bi bi-circle"></i><span>Buat Area Baru</span>
+							</a>
+						</li>
+					<?php } ?>
+
+					<?php if($this->session->user->role == 1){ ?>
+						<li>
+							<a href="<?= base_url('area/assign') ?>">
+								<i class="bi bi-circle"></i><span>Assign PIC Area</span>
+							</a>
+						</li>
+					<?php } ?>
+
 					<li>
             <a href="<?= base_url('area/book') ?>">
               <i class="bi bi-circle"></i><span>Booking Area</span>
