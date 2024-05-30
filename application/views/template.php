@@ -155,16 +155,23 @@
               <i class="bi bi-circle"></i><span>Master Area</span>
             </a>
           </li>
-					<li>
-            <a href="<?= base_url('area/add') ?>">
-              <i class="bi bi-circle"></i><span>Buat Area Baru</span>
-            </a>
-          </li>
-					<li>
-            <a href="<?= base_url('area/assign') ?>">
-              <i class="bi bi-circle"></i><span>Assign PIC Area</span>
-            </a>
-          </li>
+
+					<?php if($this->session->user->role == 1){ ?>
+						<li>
+							<a href="<?= base_url('area/add') ?>">
+								<i class="bi bi-circle"></i><span>Buat Area Baru</span>
+							</a>
+						</li>
+					<?php } ?>
+
+					<?php if($this->session->user->role == 1){ ?>
+						<li>
+							<a href="<?= base_url('area/assign') ?>">
+								<i class="bi bi-circle"></i><span>Assign PIC Area</span>
+							</a>
+						</li>
+					<?php } ?>
+
 					<li>
             <a href="<?= base_url('area/book') ?>">
               <i class="bi bi-circle"></i><span>Booking Area</span>
@@ -258,6 +265,7 @@
         </ul>
       </li><!-- End Inventaris Nav -->
 
+			<?php if ($this->session->user->role == 1){ ?>
 			<li class="nav-item">
         <a class="nav-link collapsed" data-bs-target="#user-nav" data-bs-toggle="collapse" href="#">
 					<i class="bi bi-person"></i><span>Master User</span><i class="bi bi-chevron-down ms-auto"></i>
@@ -280,6 +288,7 @@
           </li>
         </ul>
       </li><!-- End Master User Nav -->
+			<?php } ?>
 
 			<li class="nav-item">
         <a class="nav-link collapsed" data-bs-target="#usersettings-nav" data-bs-toggle="collapse" href="#">

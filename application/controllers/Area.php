@@ -364,8 +364,7 @@ class Area extends CI_Controller
 		$this->db->where('a.role < 3');
 
 		if (isset($get['search']) || !in_array($get['search'], [null, ""])) {
-			$this->db->like('a.username', $get['search']);
-			$this->db->or_like('c.name', $get['search']);
+			$this->db->like('c.name', $get['search']);
 		}
 
 		$this->db->limit(100);
@@ -389,8 +388,7 @@ class Area extends CI_Controller
 		$this->db->from('tb_master_area AS a');
 
 		if (!in_array($get['search'], [null, ""])) {
-			$this->db->like('a.area_code', $get['search']);
-			$this->db->or_like('a.area_name', $get['search']);
+			$this->db->like('a.area_name', $get['search']);
 		}
 
 		$this->db->limit(100);
@@ -462,7 +460,7 @@ class Area extends CI_Controller
 
 			$this->_setFlashdata(true, 'Booking Berhasil Dikirim.');
 			$this->_writeLog('AREA_BOOK', true, $post, $headers);
-			return redirect('area/book');
+			return redirect('area/approve');
 
 		} catch (\Throwable $th) {
 			$this->_setFlashdata(false, 'Internal Server Error');
@@ -483,6 +481,21 @@ class Area extends CI_Controller
 		if ($result) {
 			$no = 1;
 			foreach ($result as $key => $value) {
+				
+				if ($this->session->user->role > 2) { // kalo role nya selan guru dan admin
+					$button = '<a href="' . base_url('area/approve') . '" class="btn btn-primary btn-sm rounded-pill">Refresh</a>';
+				} else {
+					if ($value->status_approval == "PENDING") {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>
+									</div>';
+					} else {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/0') . '" class="btn btn-danger btn-sm rounded-pill">Disapprove</a>
+									</div>';
+					}
+				}
+
 				$data[] = [
 					$no++,
 					$value->submission_area_code,
@@ -495,13 +508,7 @@ class Area extends CI_Controller
 					date('d F Y H:i', strtotime($value->end_date)),
 					$value->user_notes,
 					$value->pic_area,
-					$value->status_approval == "PENDING"
-						? '<div class="d-flex align-items-center justify-content-center">
-							<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>
-						</div>'
-						: '<div class="d-flex align-items-center justify-content-center">
-							<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/0') . '" class="btn btn-danger btn-sm rounded-pill">Disapprove</a>
-						</div>'
+					$button
 				];
 			}
 
@@ -536,6 +543,21 @@ class Area extends CI_Controller
 	public function do_approve($submissionCode, $isApprove = 1)
 	{
 		try {
+
+			if ($this->session->user->role != 1) { // kalo role nya bukan admin
+				$getUser = $this->db->select('b.pic_area')
+								->from('tb_submission_area AS a')
+								->join('tb_master_area AS b', 'a.area_code=b.area_code')
+								->where('a.submission_area_code', $submissionCode)
+								->get()->row();
+
+				if ($this->session->user->username != trim($getUser->pic_area)) {
+					$this->_setFlashdata(false, 'Anda tidak memiliki akses untuk approval ini.');
+
+					return redirect('area/approve');
+				}
+			}
+
 			$this->db->trans_begin();
 			$this->db->where('submission_area_code', $submissionCode);
 			if ($isApprove == 0) {

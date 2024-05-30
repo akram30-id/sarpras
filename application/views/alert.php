@@ -1,5 +1,5 @@
 <!-- Modal -->
-<div class="modal fade" id="alert<?= $idUpdate ?>" tabindex="-1" aria-labelledby="alertLabel" aria-hidden="true">
+<div class="modal fade" id="alert<?= $idUpdate ?? $dataAlert ?>" tabindex="-1" aria-labelledby="alertLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-body">

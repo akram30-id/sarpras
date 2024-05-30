@@ -100,6 +100,33 @@ class Area_m extends CI_Model
 
 	function saveBooking($post)
 	{
+		$area = trim($post['area']);
+		$explode = explode(' - ', $area);
+		$areaCode = $explode[0];
+
+		$startInput = date('Y-m-d H:i', strtotime($post['start_date'] . ' ' . $post['start_clock']));
+		$endInput = date('Y-m-d H:i', strtotime($post['end_date'] . ' ' . $post['end_clock']));
+
+		// cek dulu apakah udah ada yg booking atau belum
+		$getBookingExist = $this->db->select('start_date, end_date')
+									->from('tb_submission_area')
+									->where('area_code', $areaCode)
+									->get()->result();
+
+		foreach ($getBookingExist as $booking) {
+			if (
+				($startInput >= date('Y-m-d H:i', strtotime($booking->start_date)) && $startInput <= date('Y-m-d H:i', strtotime($booking->end_date))) 
+				|| 
+				($endInput >= date('Y-m-d H:i', strtotime($booking->start_date)) && $endInput <= date('Y-m-d H:i', strtotime($booking->end_date)))
+			) {
+				return ['success' => false, 'message' => 'Jadwal sudah ada yang booking.'];
+			}
+
+			if ($startInput <= date('Y-m-d H:i', strtotime($booking->start_date)) && $endInput >= date('Y-m-d H:i', strtotime($booking->start_date))) {
+				return ['success' => false, 'message' => 'Jadwal sudah ada yang booking.'];
+			}
+		}
+
 		// Generate area_code
 		$this->db->select_max('id_submission_area');
 		$query = $this->db->get('tb_submission_area');
@@ -107,16 +134,12 @@ class Area_m extends CI_Model
 		$id = (($row->id_submission_area == null) ? 0 : $row->id_submission_area) + 1;
 		$submissionAreaCode = 'BOOK' . str_pad($id, 6, '0', STR_PAD_LEFT);
 
-		$area = trim($post['area']);
-		$explode = explode('-', $area);
-		$areaCode = $explode[0];
-
 		$data = [
 			'submission_area_code' => $submissionAreaCode,
 			'area_code' => $areaCode,
 			'user_submit' => $this->session->user->username,
-			'start_date' => date('Y-m-d H:i:s', strtotime($post['start_date'] . ' ' . $post['start_clock'])),
-			'end_date' => date('Y-m-d H:i:s', strtotime($post['end_date'] . ' ' . $post['end_clock'])),
+			'start_date' => $startInput,
+			'end_date' => $endInput,
 			'user_notes' => $post['user_notes']
 		];
 		$this->db->trans_begin();
@@ -133,13 +156,26 @@ class Area_m extends CI_Model
 
 	function getBookingApproval($pic)
 	{
+		$post = $this->input->post();
+
+		$search = $post['search']['value'];
+
 		$this->db->select('a.*, b.area_name, b.pic_area, c.name AS submitter_name');
 		$this->db->from('tb_submission_area AS a');
 		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
 		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
-		if ($this->session->user->role != 1) {
+		if ($this->session->user->role == 2) {
 			$this->db->where('b.pic_area', $pic);
+		} else if ($this->session->user->role == 3) {
+			$this->db->where('a.user_submit', $this->session->user->username);
 		}
+
+		if (!in_array($search, ['', null])) {
+			$this->db->like('b.area_name', $search);
+		}
+
+		$this->db->order_by('a.created_at', 'DESC');
+
 		$query = $this->db->get()->result();
 
 		return $query;
@@ -170,12 +206,16 @@ class Area_m extends CI_Model
 		if (!in_array($search, ['', null])) {
 			$this->db->like('b.area_name', $search);
 		}
-		if ($this->session->user->role != 1) {
-			$this->db->where('a.user_submit', $user);
-			if (!in_array($search, ['', null])) {
-				$this->db->or_like('c.name', $search);
-			}
+
+		$this->db->where('a.user_submit', $user);
+		$this->db->where('a.status_approval', 'APPROVED');
+
+		if (!in_array($search, ['', null])) {
+			$this->db->or_like('c.name', $search);
 		}
+
+		$this->db->order_by('a.created_at', 'DESC');
+
 		$query = $this->db->get()->result();
 
 		return $query;
