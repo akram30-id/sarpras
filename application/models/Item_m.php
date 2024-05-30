@@ -19,6 +19,15 @@ class Item_m extends CI_Model
 		$explode = explode('-', $item);
 		$itemCode = $explode[0];
 
+		$cekItem = $this->db->select('item_code')
+							->from('tb_master_item')
+							->where('item_code', $itemCode)
+							->get()->row();
+
+		if (!$cekItem) {
+			return ['success' => false, 'message' => 'Item is not found.'];
+		}
+
 		$data = [
 			'submission_item_code' => $submissionItemCode,
 			'item_code' => $itemCode,

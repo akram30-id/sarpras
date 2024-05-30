@@ -8,18 +8,18 @@
 				<form class="needs-validation" novalidate method="POST" action="<?= base_url('item/do_request') ?>" enctype="multipart/form-data">
 					<div class="mb-1">
 						<label for="find-item" class="form-label">Item</label>
-						<input type="text" class="form-control" id="find-item" name="find-item" required>
+						<input type="text" class="form-control" id="find-item" name="find-item" value="<?= $itemProp ?>" <?php if($itemProp != '') echo 'disabled'; ?> required>
 						<div class="invalid-feedback">
 							Wajib pilih item.
 						</div>
 					</div>
 					<div class="mb-3">
-						<input type="text" class="form-control" id="item" disabled>
-						<input type="hidden" class="form-control" id="send-item" name="item">
+						<input type="text" class="form-control" id="item" value="<?= $itemProp ?>" disabled>
+						<input type="hidden" class="form-control" id="send-item" value="<?= $itemProp ?>" name="item">
 					</div>
 					<div class="mb-3" id="qty-section">
 						<label for="qty" class="form-label">Quantity</label>
-						<input type="number" class="form-control" id="qty" name="qty" disabled>
+						<input type="number" class="form-control" id="qty" name="qty" value="<?= $qty ?>" <?php if($qty == '') echo 'disabled' ?>>
 					</div>
 					<div class="row mb-3">
 						<div class="col-sm-6">
