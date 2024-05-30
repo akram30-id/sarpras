@@ -265,6 +265,7 @@
         </ul>
       </li><!-- End Inventaris Nav -->
 
+			<?php if ($this->session->user->role == 1){ ?>
 			<li class="nav-item">
         <a class="nav-link collapsed" data-bs-target="#user-nav" data-bs-toggle="collapse" href="#">
 					<i class="bi bi-person"></i><span>Master User</span><i class="bi bi-chevron-down ms-auto"></i>
@@ -287,6 +288,7 @@
           </li>
         </ul>
       </li><!-- End Master User Nav -->
+			<?php } ?>
 
 			<li class="nav-item">
         <a class="nav-link collapsed" data-bs-target="#usersettings-nav" data-bs-toggle="collapse" href="#">
