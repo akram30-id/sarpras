@@ -208,6 +208,7 @@ class Area_m extends CI_Model
 		}
 
 		$this->db->where('a.user_submit', $user);
+		$this->db->where('a.status_approval', 'APPROVED');
 
 		if (!in_array($search, ['', null])) {
 			$this->db->or_like('c.name', $search);
