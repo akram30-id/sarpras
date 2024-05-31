@@ -36,15 +36,18 @@ class Ekskul extends CI_Controller
 
 		$data = [];
 
-		$button = '<div class="d-flex align-items-center justify-content-center">';
 		if ($masterEkskul) {
 			$no = 1;
 			foreach ($masterEkskul as $key => $value) {
 				if ($this->session->user->role == 1) {
-					$button .= '<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
-								<a href="' . base_url('ekskul/delete/' . $value->ekskul_code) . '" class="btn btn-danger btn-sm rounded-pill">Hapus</a>';
+					$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
+									<a href="' . base_url('ekskul/delete/' . $value->ekskul_code) . '" class="btn btn-danger btn-sm rounded-pill">Hapus</a>
+								</div>';
 				} else {
-					$button .= '<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>';
+					$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
+								</div>';
 				}
 
 				$data[] = [
@@ -72,7 +75,6 @@ class Ekskul extends CI_Controller
 				'data' => []
 			];
 		}
-		$button .= '</div>';
 
 		$this->output->set_content_type('application/json')->set_output(json_encode($output));
 	}
