@@ -248,17 +248,17 @@
         </a>
         <ul id="ekskul-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
           <li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('ekskul/master') ?>">
               <i class="bi bi-circle"></i><span>Master Eksul</span>
             </a>
           </li>
 					<li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('ekskul/assign') ?>">
               <i class="bi bi-circle"></i><span>Assign PIC Ekskul</span>
             </a>
           </li>
 					<li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('ekskul/schedule') ?>">
               <i class="bi bi-circle"></i><span>Jadwal Ekskul</span>
             </a>
           </li>
