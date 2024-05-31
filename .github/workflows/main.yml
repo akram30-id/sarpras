@@ -1,11 +1,11 @@
-name: HFO Sarpras Deploy
+name: DEV Server HFO Sarpras Deploy
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
     branches:
-      - main
+      - dev
 
 jobs: 
   FTP-Deploy-Action:
@@ -22,8 +22,8 @@ jobs:
           # FTP host
           server: ftpupload.net
           # FTP user
-          username: if0_36533550
+          username: if0_36536625
           # FTP password
-          password: ugjxJt1q7y
+          password: TL9903hhKkR
           # Remote directory
           server-dir: /htdocs/
