@@ -157,6 +157,38 @@ class Ekskul extends CI_Controller
 		}
 	}
 
+	public function delete($ekskulCode)
+	{
+		$headers = $_SERVER;
+
+		$this->db->trans_begin();
+		$this->db->delete('tb_master_ekskul', ['ekskul_code' => $ekskulCode]);
+
+		if ($this->db->trans_status() === FALSE) {
+			$this->db->trans_rollback();
+
+			$this->_setFlashdata(false, 'Transaction failed.');
+			$this->_writeLog('DELETE_EKSKUL', false, ['ekskul_code' => $ekskulCode, 'success' => false, 'message' => 'Transaction failed.'], $headers);
+		} else {
+			$this->db->trans_commit();
+
+			$this->_setFlashdata(true, 'Berhasil menghapus ekskul.');
+			$this->_writeLog('DELETE_EKSKUL', true, ['ekskul_code' => $ekskulCode, 'success' => true, 'message' => 'Berhasil menghapus ekskul.'], $headers);
+		}
+
+		return redirect('ekskul/master');
+	}
+
+	public function detail($ekskulCode)
+	{
+		$data['title'] = 'Master Ekskul';
+		$data['module'] = 'Ekskul Page';
+		$data['ajax'] = base_url('ekskul/#');
+		$data['content'] = $this->load->view('ekskul/detail', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
 }
 
 
