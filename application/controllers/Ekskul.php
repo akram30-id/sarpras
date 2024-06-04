@@ -42,7 +42,17 @@ class Ekskul extends CI_Controller
 				if ($this->session->user->role == 1) {
 					$button = '<div class="d-flex align-items-center justify-content-center">
 									<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
-									<a href="' . base_url('ekskul/delete/' . $value->ekskul_code) . '" class="btn btn-danger btn-sm rounded-pill">Hapus</a>
+									<button class="btn btn-danger btn-sm rounded-pill" data-bs-toggle="collapse" data-bs-target="#collapseDelete' . $value->ekskul_code . '" aria-expanded="false" aria-controls="collapseDelete">Hapus</button>
+								</div>
+								<div class="collapse" id="collapseDelete'. $value->ekskul_code . '">
+									<div class="card card-body">
+										<small class="mt-2">Hapus ' . $value->ekskul_code . '?</small>
+										<br>
+										<div class="d-flex">
+											<a href="' . base_url('ekskul/delete/' . $value->ekskul_code) . '" style="margin-right:8px;">Ya</a>
+											<a href="#" data-bs-toggle="collapse" data-bs-target="#collapseDelete' . $value->ekskul_code . '">Tidak</a>
+										</div>
+									</div>
 								</div>';
 				} else {
 					$button = '<div class="d-flex align-items-center justify-content-center">
