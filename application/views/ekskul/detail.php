@@ -1,3 +1,4 @@
+<div id="url" data-urlPic="<?= $ajax; ?>"></div>
 <div class="mt-5">
 	<div class="row justify-content-center">
 		<div class="col-sm-8">
@@ -8,7 +9,7 @@
 				</h3>
 					<div class="row align-items-center px-3 pb-3">
 						<div class="col-sm-4">
-							<img height="256" class="img-fluid" src="https://wallpapers.com/images/featured/cool-profile-picture-87h46gcobjl5e4xu.jpg" alt="" srcset="">
+							<img id="avatar" height="256" class="img-fluid" src="<?= base_url('assets/img/loading.gif') ?>" alt="" srcset="">
 						</div>
 						<div class="col-sm-8">
 							<div class="row">
@@ -16,7 +17,7 @@
 									<p>Nama</p>
 								</div>
 								<div class="col-sm-9">
-									<p>NAME OF PIC WILL BE HERE SOON . . . </p>
+									<p id="name">LOADING . . . </p>
 								</div>
 							</div>
 							<div class="row">
@@ -24,15 +25,15 @@
 									<p>Tangal Lahir</p>
 								</div>
 								<div class="col-sm-9">
-									<p>Tangal Lahir WILL BE HERE SOON . . .</p>
+									<p id="born-date">Loading . . .</p>
 								</div>
 							</div>
-							<div class="row">
+							<div class="row align-items-center">
 								<div class="col-sm-3">
 									<p>Tempat Lahir</p>
 								</div>
 								<div class="col-sm-9">
-									<p>Tempat Lahir WILL BE HERE SOON . . .</p>
+									<p id="born-at">Loading . . .</p>
 								</div>
 							</div>
 							<div class="row">
@@ -40,13 +41,37 @@
 									<p>Updated By</p>
 								</div>
 								<div class="col-sm-9">
-									<p>WILL BE HERE SOON . . .</p>
+									<p id="user-input">Loading . . .</p>
 								</div>
 							</div>
 						</div>
+					</div>
+					<div class="d-flex align-items-center justify-content-end mt-3">
+						<a href="<?= base_url('ekskul/schedule/' . $ekskul_code) ?>" class="btn btn-sm btn-primary rounded-pill">Show Schedule >>></a>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
+
+<script>
+	const url = $("#url").data("urlpic");
+
+	$.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		success: function (result) {
+			if (result.success) {
+				const response = result.data;
+
+				$("#avatar").attr('src', response.photo);
+				$("#name").text(response.name);
+				$("#born-date").text(response.birth_date);
+				$("#born-at").text(response.born_at);
+				$("#user-input").text(response.user_input + ' (' + response.created_at + ')');
+			}
+		}
+	})
+</script>
