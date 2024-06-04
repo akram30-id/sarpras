@@ -193,10 +193,35 @@ class Ekskul extends CI_Controller
 	{
 		$data['title'] = 'Master Ekskul';
 		$data['module'] = 'Ekskul Page';
-		$data['ajax'] = base_url('ekskul/#');
+		$data['ekskul_code'] = $ekskulCode;
+		$data['ajax'] = base_url('ekskul/pic/' . $ekskulCode);
 		$data['content'] = $this->load->view('ekskul/detail', $data, true);
 
 		$this->load->view('template', $data);
+	}
+
+	public function getPic($ekskulCode)
+	{
+		$ekskul = $this->db->select('pic')
+							->from('tb_master_ekskul')
+							->where('ekskul_code', $ekskulCode)
+							->get()->row();
+
+		$pic = $ekskul->pic;
+
+		$getPic = $this->db->select('*')
+							->from('tb_profile')
+							->where('username', $pic)
+							->get()->row();
+
+		$getPic->created_at = date('d F Y', strtotime($getPic->created_at));
+		
+		$this->output
+				->set_content_type('application/json')
+				->set_output(json_encode([
+					'success' => true,
+					'data' => $getPic
+				]));
 	}
 
 }
