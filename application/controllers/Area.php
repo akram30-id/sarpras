@@ -437,11 +437,6 @@ class Area extends CI_Controller
 	{
 		$get = $this->input->get();
 
-		$ekskulCode = '';
-		if (isset($get['ekskul'])) {
-			$ekskulCode = $get['ekskul'];
-		}
-
 		$data['title'] = 'Booking Area';
 		$data['module'] = 'Area Page';
 		$data['areas'] = $this->_getAreaMaster();
