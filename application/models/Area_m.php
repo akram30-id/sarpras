@@ -109,15 +109,15 @@ class Area_m extends CI_Model
 
 		// cek dulu apakah udah ada yg booking atau belum
 		$getBookingExist = $this->db->select('start_date, end_date')
-									->from('tb_submission_area')
-									->where('area_code', $areaCode)
-									->get()->result();
+		->from('tb_submission_area')
+		->where('area_code', $areaCode)
+		->get()->result();
 
 		foreach ($getBookingExist as $booking) {
 			if (
-				($startInput >= date('Y-m-d H:i', strtotime($booking->start_date)) && $startInput <= date('Y-m-d H:i', strtotime($booking->end_date))) 
-				|| 
-				($endInput >= date('Y-m-d H:i', strtotime($booking->start_date)) && $endInput <= date('Y-m-d H:i', strtotime($booking->end_date)))
+			($startInput >= date('Y-m-d H:i', strtotime($booking->start_date)) && $startInput <= date('Y-m-d H:i', strtotime($booking->end_date))) 
+			|| 
+			($endInput >= date('Y-m-d H:i', strtotime($booking->start_date)) && $endInput <= date('Y-m-d H:i', strtotime($booking->end_date)))
 			) {
 				return ['success' => false, 'message' => 'Jadwal sudah ada yang booking.'];
 			}
@@ -151,7 +151,7 @@ class Area_m extends CI_Model
 		}
 
 		$this->db->trans_commit();
-		return ['success' => true];
+		return ['success' => true, 'submission_area_code' => $submissionAreaCode];
 	}
 
 	function getBookingApproval($pic)
@@ -159,6 +159,8 @@ class Area_m extends CI_Model
 		$post = $this->input->post();
 
 		$search = $post['search']['value'];
+		$offset = $post['start'];
+		$limit = $post['length'];
 
 		$this->db->select('a.*, b.area_name, b.pic_area, c.name AS submitter_name');
 		$this->db->from('tb_submission_area AS a');
@@ -175,6 +177,8 @@ class Area_m extends CI_Model
 		}
 
 		$this->db->order_by('a.created_at', 'DESC');
+
+		$this->db->limit($limit, $offset);
 
 		$query = $this->db->get()->result();
 

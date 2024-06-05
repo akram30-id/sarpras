@@ -137,4 +137,15 @@ class CI_Controller
 		$this->session->set_flashdata($flag, $message);
 	}
 
+	protected function response($success = true, $data = [])
+	{
+		return $this->output
+					->set_content_type('application/json')
+					->set_output(json_encode([
+						'success' => $success,
+						'data' => $data
+					]))
+					->set_status_header(200);
+	}
+
 }

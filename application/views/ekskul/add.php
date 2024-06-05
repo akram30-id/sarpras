@@ -58,5 +58,7 @@
 			$("#pic").val(ui.item.value); // Append selected value
 			$("#send-pic").val(ui.item.value); // Append selected value
 		}
-	});
+	}).focus(function () {
+		$(this).autocomplete('search', '')
+	});;
 </script>
