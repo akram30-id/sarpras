@@ -476,6 +476,8 @@ class Area extends CI_Controller
 	{
 		$result = $this->Area_m->getBookingApproval($this->session->user->username);
 
+		$post = $this->input->post();
+
 		$data = [];
 
 		if ($result) {
@@ -514,8 +516,8 @@ class Area extends CI_Controller
 
 			$output = [
 				'draw' => intval($this->input->post('draw')),
-				'recordsTotal' => count($result),
-				'recordsFiltered' => count($result),
+				'recordsTotal' => $post['length'],
+				'recordsFiltered' => 1000,
 				'data' => $data
 			];
 		} else {

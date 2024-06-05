@@ -8,6 +8,8 @@ class Ekskul extends CI_Controller
 	{
 		parent::__construct();
 		$this->_cekLogin();
+
+		$this->load->model('Area_m');
 	}
 
 	public function master()
@@ -42,6 +44,7 @@ class Ekskul extends CI_Controller
 				if ($this->session->user->role == 1) {
 					$button = '<div class="d-flex align-items-center justify-content-center">
 									<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
+									<a href="' . base_url('ekskul/set_schedule/' . $value->ekskul_code) . '" class="btn btn-warning btn-sm rounded-pill" style="margin-right: 8px;">Jadwal</a>
 									<button class="btn btn-danger btn-sm rounded-pill" data-bs-toggle="collapse" data-bs-target="#collapseDelete' . $value->ekskul_code . '" aria-expanded="false" aria-controls="collapseDelete">Hapus</button>
 								</div>
 								<div class="collapse" id="collapseDelete'. $value->ekskul_code . '">
@@ -172,7 +175,11 @@ class Ekskul extends CI_Controller
 		$headers = $_SERVER;
 
 		$this->db->trans_begin();
+		// hapus master ekskul
 		$this->db->delete('tb_master_ekskul', ['ekskul_code' => $ekskulCode]);
+
+		// hapus jadwal booking
+		$this->db->delete('tb_submission_area', ['user_notes' => 'KEGIATAN EKSKUL #' . $ekskulCode]);
 
 		if ($this->db->trans_status() === FALSE) {
 			$this->db->trans_rollback();
@@ -222,6 +229,132 @@ class Ekskul extends CI_Controller
 					'success' => true,
 					'data' => $getPic
 				]));
+	}
+
+	public function set_schedule($ekskulCode)
+	{
+		$this->db->select('a.ekskul_code, a.ekskul_name, a.pic, b.name');
+		$this->db->from('tb_master_ekskul AS a');
+		$this->db->join('tb_profile AS b', 'a.pic=b.username');
+		$this->db->where('ekskul_code', $ekskulCode);
+		$ekskul = $this->db->get()->row();
+
+		$data['title'] = 'Set Jadwal Ekskul';
+		$data['module'] = 'Ekskul Page';
+		$data['ekskul'] = $ekskul;
+		$data['findArea'] = base_url('area/find_area');
+		$data['ajax'] = base_url('ekskul/pic/' . $ekskulCode);
+		$data['content'] = $this->load->view('ekskul/form_schedule', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function do_insert_schedule($ekskulCode)
+	{
+		$post = $this->input->post();
+
+		$this->db->trans_begin();
+
+		$post['ekskul'] = $ekskulCode; // tambahin index "ekskul"
+
+		// masuk ke master schedule
+		$this->db->insert('tb_ekskul_schedule', [
+			'ekskul_code' => $ekskulCode,
+			'day' => $post['day'],
+			'start_clock' => $post['start_clock'],
+			'end_clock' => $post['end_clock'],
+			'user_input' => $this->session->user->username
+		]);
+
+		$scheduleId = $this->db->insert_id();
+		$scheduleCode = 'SCHE' . str_pad($scheduleId, 6, '0', STR_PAD_LEFT);
+		// update schedule code
+		$this->db->update('tb_ekskul_schedule', ['schedule_code' => $scheduleCode], ['id_ekskul_schedule' => $scheduleId]);
+
+		$this->_setAutoSchedule($post);
+
+		if ($this->db->trans_status() === FALSE) {
+			$this->db->trans_rollback();
+			
+			$this->_writeLog('ADD_SCHEDUL_EKS', false, $post, $_SERVER);
+
+			$this->_setFlashdata(false, 'Transaciton Failed.');
+		} else {
+			$this->db->trans_commit();
+
+			$this->_writeLog('ADD_SCHEDUL_EKS', true, $post, $_SERVER);
+
+			$this->_setFlashdata(true, 'Behasil menambahkan jadwal.');
+		}
+
+		return redirect('ekskul/master');
+	}
+
+	private function _setAutoSchedule($post)
+	{
+		// initialize days
+		$days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+		$selectedDay = $days[intval($post['day'])];
+
+		// Start date
+		$startDate = new DateTime();
+		$startDate->modify('next ' . $selectedDay); // Start from the next Thursday
+
+		// End date (6 months ahead)
+		$endDate = new DateTime();
+		$endDate->modify('+6 months');
+
+		// Array to store all Thursdays
+		$dates = [];
+
+		// Iterate through each week to get Thursdays
+		while ($startDate <= $endDate) {
+			// Add the date to the array
+			$dates[] = $startDate->format('Y-m-d');
+			// Move to the next Thursday
+			$startDate->modify('+1 week');
+		}
+
+		// Set all dates
+		foreach ($dates as $date) {
+			// echo $date . PHP_EOL;
+			
+			// booking otomatis
+			$post['start_date'] = $date;
+			$post['end_date'] = $date;
+			$post['user_notes'] = 'KEGIATAN EKSKUL #' . $post['ekskul'];
+			$booking = $this->Area_m->saveBooking($post);
+
+			// approve otomatis
+			if ($booking['success']) {
+				$this->db->update('tb_submission_area', [
+					'status_approval' => 'APPROVED',
+					'user_update' => $this->session->user->username,
+				], ['submission_area_code' => $booking['submission_area_code']]);
+			} else {
+				$this->_writeLog('ADD_SCHEDUL_EKS', false, ['post' => $post, 'message' => $booking['message'] ?? ''], $_SERVER);
+				continue;
+			}
+		}
+	}
+
+	public function schedule()
+	{
+		$data['title'] = 'Jadwal Ekskul Semester Ini';
+		$data['module'] = 'Ekskul Page';
+		$data['schedule'] = base_url('ekskul/get_schedule');
+		$data['content'] = $this->load->view('ekskul/schedule', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function get_schedule()
+	{
+		$this->db->select('*');
+		$this->db->from('tb_ekskul_schedule');
+		$query = $this->db->get()->result();
+
+		return $this->response(true, $query);
 	}
 
 }
