@@ -435,8 +435,6 @@ class Area extends CI_Controller
 
 	public function book()
 	{
-		$get = $this->input->get();
-
 		$data['title'] = 'Booking Area';
 		$data['module'] = 'Area Page';
 		$data['areas'] = $this->_getAreaMaster();
