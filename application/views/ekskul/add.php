@@ -60,5 +60,5 @@
 		}
 	}).focus(function () {
 		$(this).autocomplete('search', '')
-	});;
+	});
 </script>
