@@ -104,6 +104,15 @@ class Area_m extends CI_Model
 		$explode = explode(' - ', $area);
 		$areaCode = $explode[0];
 
+		$cekArea = $this->db->select('area_code')
+							->from('tb_master_area')
+							->where('area_code', $areaCode)
+							->get()->row();
+
+		if (!$cekArea) {
+			return ['success' => false, 'message' => 'Invalid kode area.'];
+		}
+
 		$startInput = date('Y-m-d H:i', strtotime($post['start_date'] . ' ' . $post['start_clock']));
 		$endInput = date('Y-m-d H:i', strtotime($post['end_date'] . ' ' . $post['end_clock']));
 

@@ -41,10 +41,19 @@ class Ekskul extends CI_Controller
 		if ($masterEkskul) {
 			$no = 1;
 			foreach ($masterEkskul as $key => $value) {
+				
+				$getSchedule = $this->db->select('ekskul_code')->from('tb_ekskul_schedule')->where('ekskul_code', $value->ekskul_code)->get()->row();
+
+				if (!$getSchedule) {
+					$additionalButton = '<a href="' . base_url('ekskul/set_schedule/' . $value->ekskul_code) . '" class="btn btn-warning btn-sm rounded-pill" style="margin-right: 8px;">+Jadwal</a>';
+				} else {
+					$additionalButton = '';
+				}
+
 				if ($this->session->user->role == 1) {
 					$button = '<div class="d-flex align-items-center justify-content-center">
 									<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
-									<a href="' . base_url('ekskul/set_schedule/' . $value->ekskul_code) . '" class="btn btn-warning btn-sm rounded-pill" style="margin-right: 8px;">Jadwal</a>
+									' . $additionalButton . '
 									<button class="btn btn-danger btn-sm rounded-pill" data-bs-toggle="collapse" data-bs-target="#collapseDelete' . $value->ekskul_code . '" aria-expanded="false" aria-controls="collapseDelete">Hapus</button>
 								</div>
 								<div class="collapse" id="collapseDelete'. $value->ekskul_code . '">
@@ -58,9 +67,16 @@ class Ekskul extends CI_Controller
 									</div>
 								</div>';
 				} else {
-					$button = '<div class="d-flex align-items-center justify-content-center">
-									<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
-								</div>';
+					if ($this->session->user->username == $value->pic) {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
+										' . $additionalButton . '
+									</div>';
+					} else {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('ekskul/detail/' . $value->ekskul_code) . '" class="btn btn-primary btn-sm rounded-pill" style="margin-right: 8px;">Detail</a>
+									</div>';
+					}
 				}
 
 				$data[] = [
@@ -110,7 +126,7 @@ class Ekskul extends CI_Controller
 		$this->db->select('a.username, b.name');
 		$this->db->from('tb_user AS a');
 		$this->db->join('tb_profile AS b', 'a.username=b.username');
-		$this->db->where('a.role', 3);
+		$this->db->where_in('a.role', [1,2]);
 
 		if (!in_array($get['search'], [null, ""])) {
 			$this->db->like('b.name', $get['search']);
@@ -198,10 +214,27 @@ class Ekskul extends CI_Controller
 
 	public function detail($ekskulCode)
 	{
+		$detailEkskul = $this->db->select('a.*, c.name')
+									->from('tb_master_ekskul AS a')
+									->join('tb_profile AS c', 'a.pic=c.username', 'left')
+									->where('a.ekskul_code', $ekskulCode)
+									->get()->row();
+
+		$detailSchedule = $this->db->select('a.*, b.area_name')
+									->from('tb_ekskul_schedule AS a')
+									->join('tb_master_area AS b', 'a.area_code=b.area_code')
+									->where('a.ekskul_code', $ekskulCode)
+									->get()->row();
+
 		$data['title'] = 'Master Ekskul';
 		$data['module'] = 'Ekskul Page';
 		$data['ekskul_code'] = $ekskulCode;
 		$data['ajax'] = base_url('ekskul/pic/' . $ekskulCode);
+		$data['ekskul'] = $detailEkskul;
+		$data['schedule'] = $detailSchedule;
+		$data['findArea'] = base_url('area/find_area');
+		$data['findUser'] = base_url('ekskul/find_user');
+
 		$data['content'] = $this->load->view('ekskul/detail', $data, true);
 
 		$this->load->view('template', $data);
@@ -257,9 +290,13 @@ class Ekskul extends CI_Controller
 
 		$post['ekskul'] = $ekskulCode; // tambahin index "ekskul"
 
+		$explode = explode(' - ', $post['area']);
+		$areaCode = $explode[0];
+
 		// masuk ke master schedule
 		$this->db->insert('tb_ekskul_schedule', [
 			'ekskul_code' => $ekskulCode,
+			'area_code' => $areaCode,
 			'day' => $post['day'],
 			'start_clock' => $post['start_clock'],
 			'end_clock' => $post['end_clock'],
@@ -340,9 +377,11 @@ class Ekskul extends CI_Controller
 
 	public function schedule()
 	{
+		$schedule = $this->get_schedule();
+
 		$data['title'] = 'Jadwal Ekskul Semester Ini';
 		$data['module'] = 'Ekskul Page';
-		$data['schedule'] = base_url('ekskul/get_schedule');
+		$data['schedule'] = $schedule;
 		$data['content'] = $this->load->view('ekskul/schedule', $data, true);
 
 		$this->load->view('template', $data);
@@ -350,11 +389,97 @@ class Ekskul extends CI_Controller
 
 	public function get_schedule()
 	{
-		$this->db->select('*');
-		$this->db->from('tb_ekskul_schedule');
+		$this->db->select('a.*, b.ekskul_name');
+		$this->db->from('tb_ekskul_schedule AS a');
+		$this->db->join('tb_master_ekskul AS b', 'a.ekskul_code=b.ekskul_code');
 		$query = $this->db->get()->result();
 
-		return $this->response(true, $query);
+		return $query;
+	}
+
+	public function do_update($ekskulCode)
+	{
+		$ekskul = $this->db->get_where('tb_master_ekskul', ['ekskul_code' => $ekskulCode])->row();
+
+		// cuma boleh diupdate oleh admin atau user PIC ekskul
+		if($this->session->user->role != 1) { // kalo bukan admin
+			if ($this->session->user->username != $ekskul->pic) { // bukan admin, bukan PIC juga
+				$this->_setFlashdata(false, 'Akses ditolak.');
+				return redirect('ekskul/master');
+			}
+		}
+
+		$post = $this->input->post();
+
+		$explode = explode(' - ', $post['pic']);
+		$pic = $explode[0];
+
+		$this->db->trans_begin();
+		$this->repository->update('tb_master_ekskul', [
+			'ekskul_name' => $post['ekskul_name'],
+			'pic' => $pic,
+			'updated_at' => date('Y-m-d H:i:s'),
+			'user_input' => $this->session->user->username
+		]);
+
+		if ($this->db->trans_status() === FALSE) {
+			$this->_writeLog('EKSKUL_UPDATE', false, $post, $_SERVER);
+			$this->_setFlashdata(false, 'Transaction Failed.');
+
+			$this->db->trans_rollback();
+		} else {
+			$this->_writeLog('EKSKUL_UPDATE', true, $post, $_SERVER);
+			$this->_setFlashdata(true, 'Berhasil Update Master Ekskul');
+
+			$this->db->trans_commit();
+		}
+
+		return redirect('ekskul/detail/' . $ekskulCode);
+	}
+
+	public function do_update_schedule($scheduleCode)
+	{
+		$post = $this->input->post();
+
+		$ekskul = $this->db->get_where('tb_ekskul_schedule', ['schedule_code' => $scheduleCode])->row();
+
+		$this->db->trans_begin();
+
+		$post['ekskul'] = $ekskul->ekskul_code; // tambahin index "ekskul"
+
+		$explode = explode(' - ', $post['area']);
+		$areaCode = $explode[0];
+
+		// delete booking
+		$this->db->delete('tb_submission_area', ['user_notes' => 'KEGIATAN EKSKUL #' . $ekskul->ekskul_code]);
+
+		// update ke master schedule
+		$this->db->update('tb_ekskul_schedule', [
+			'area_code' => $areaCode,
+			'day' => $post['day'],
+			'start_clock' => $post['start_clock'],
+			'end_clock' => $post['end_clock'],
+			'user_input' => $this->session->user->username,
+			'updated_at' => date('Y-m-d H:i:s')
+		], ['schedule_code' => $scheduleCode]);
+
+		$this->_setAutoSchedule($post);
+
+		if ($this->db->trans_status() === FALSE) {
+			$this->db->trans_rollback();
+			
+			$this->_writeLog('UPDATE_SCHEDULE_EKS', false, $post, $_SERVER);
+
+			$this->_setFlashdata(false, 'Transaciton Failed.');
+		} else {
+			$this->db->trans_commit();
+
+			$this->_writeLog('UPDATE_SCHEDULE_EKS', true, $post, $_SERVER);
+
+			$this->_setFlashdata(true, 'Update jadwal berhasil.');
+		}
+
+		return redirect('ekskul/detail/' . $ekskul->ekskul_code);
 	}
 
 }

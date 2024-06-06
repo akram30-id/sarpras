@@ -1,7 +1,9 @@
 <div id="url" data-urlPic="<?= $ajax; ?>"></div>
+<div id="urlSearch" data-user_url="<?= $findUser ?>"></div>
 <div class="mt-5">
 	<div class="row justify-content-center">
 		<div class="col-sm-8">
+			<?php $this->load->view('flashdata'); ?>
 			<div class="card border-0 shadow" style="border-radius: 32px;">
 				<div class="card-body">
 				<h3 class="text-center fw-semibold mt-5 mb-5">
@@ -52,11 +54,15 @@
 				</div>
 			</div>
 		</div>
+
+		<?php $this->load->view('ekskul/update_master', ['ekskul' => $ekskul]); ?>
+		<?php $this->load->view('ekskul/update_schedule', ['ekskul' => $ekskul, 'schedule' => $schedule]); ?>
 	</div>
 </div>
 
 <script>
 	const url = $("#url").data("urlpic");
+	const userURL = $("#urlSearch").data('user_url');
 
 	$.ajax({
 		url: url,
@@ -73,5 +79,29 @@
 				$("#user-input").text(response.user_input + ' (' + response.created_at + ')');
 			}
 		}
-	})
+	});
+
+	$("#find-pic").autocomplete({
+		source: function(request, response) {
+			// Replace 'your_data_url' with the actual URL of your data source
+			$.ajax({
+				url: userURL,
+				dataType: 'json',
+				type: "GET",
+				data: {
+					search: $("#find-pic").val()
+				},
+				success: function(data) {
+					response(data);
+				}
+			});
+		},
+		minLength: 0, // Show all data on focus
+		select: function(event, ui) {
+			$("#pic").val(ui.item.value); // Append selected value
+			$("#send-pic").val(ui.item.value); // Append selected value
+		}
+	}).focus(function () {
+		$(this).autocomplete('search', '')
+	});
 </script>

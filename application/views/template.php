@@ -139,7 +139,7 @@
     <ul class="sidebar-nav" id="sidebar-nav">
 
       <li class="nav-item">
-        <a class="nav-link " href="index.html">
+        <a class="nav-link " href="<?= base_url() ?>">
           <i class="bi bi-grid"></i>
           <span><?= $module ?></span>
         </a>
