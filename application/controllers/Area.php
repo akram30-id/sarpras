@@ -518,7 +518,7 @@ class Area extends CI_Controller
 			$output = [
 				'draw' => intval($this->input->post('draw')),
 				'recordsTotal' => $post['length'],
-				'recordsFiltered' => 1000,
+				'recordsFiltered' => 10000,
 				'data' => $data
 			];
 		} else {
@@ -656,8 +656,8 @@ class Area extends CI_Controller
 
 			$output = [
 				'draw' => intval($this->input->post('draw')),
-				'recordsTotal' => count($result),
-				'recordsFiltered' => count($result),
+				'recordsTotal' => $post['length'],
+				'recordsFiltered' => 10000,
 				'data' => $data,
 				'post' => $this->input->post()
 			];
