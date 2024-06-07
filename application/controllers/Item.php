@@ -1247,6 +1247,114 @@ class Item extends CI_Controller
 		}
 	}
 
+	public function print_item($type)
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'LAPORAN BARANG INVENTARIS PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'INVENTORY_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		if ($type == 'non_area') {
+			$this->db->select('a.*, b.name');
+
+			$this->db->from('tb_master_item AS a');
+
+			$this->db->join('tb_profile AS b', 'a.user_input=b.username');
+
+			$this->db->where('a.area_code IS NULL');
+		} else {
+			$this->db->select('a.*, b.name, c.*');
+
+			$this->db->from('tb_master_item AS a');
+
+			$this->db->join('tb_profile AS b', 'a.user_input=b.username');
+
+			$this->db->join('tb_master_area AS c', 'a.area_code=c.area_code');
+
+			$this->db->where('a.area_code IS NOT NULL');
+		}
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 23:59:00' . '")');
+
+
+		$this->db->order_by('a.id_master_inventory', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'INVENTORY REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report,
+			'type' => $type
+        ];
+
+        $html = $this->load->view('item/print_item', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
+	public function print_approval()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'LAPORAN INVENTARIS APPROVAL PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'INVENTORY_APPROVAL_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.name, c.submission_item_code, d.item_code, d.inventory_name, d.qty');
+
+		$this->db->from('tb_approval_item AS a');
+
+		$this->db->join('tb_profile AS b', 'a.user_input=b.username');
+
+		$this->db->join('tb_submission_item AS c', 'a.submission_item_code=c.submission_item_code');
+
+		$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 23:59:00' . '")');
+
+		$this->db->order_by('a.id_approval_item', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'APPROVAL INVENTORY REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('item/print_approval', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
 }
  
 
