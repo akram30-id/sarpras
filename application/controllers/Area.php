@@ -833,6 +833,54 @@ class Area extends CI_Controller
         $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
 	}
 
+	public function print_checkout()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'LAPORAN CHECKOUT PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'CHECKOUT_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.name, c.submission_area_code, d.area_code, d.area_name');
+
+        $this->db->from('tb_checkout_area AS a');
+
+		$this->db->join('tb_profile AS b', 'a.user_submit=b.username');
+
+		$this->db->join('tb_submission_area AS c', 'a.submission_area_code=c.submission_area_code');
+		
+		$this->db->join('tb_master_area AS d', 'a.area_code=d.area_code');		
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 23:59:00' . '")');
+
+		$this->db->order_by('a.id_checkout_area', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'CHECKOUT REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('area/print_checkout', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
 }
 
 ?>
