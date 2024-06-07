@@ -765,6 +765,8 @@ class Area extends CI_Controller
 		$this->db->join('tb_profile AS b', 'a.pic_area=b.username');
 
 		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 00:00:00' . '")');
+
+		$this->db->order_by('a.id_master_area', 'ASC');
 		
 		$report = $this->db->get()->result();
 
@@ -810,6 +812,8 @@ class Area extends CI_Controller
 		if ($status != 'ALL') {
 			$this->db->where('status_approval', $status);
 		}
+
+		$this->db->order_by('a.id_submission_area', 'ASC');
 		
 		$report = $this->db->get()->result();
 
