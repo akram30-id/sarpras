@@ -10,6 +10,7 @@ class Ekskul extends CI_Controller
 		$this->_cekLogin();
 
 		$this->load->model('Area_m');
+		$this->load->library('pdfgenerator');
 	}
 
 	public function master()
@@ -480,6 +481,52 @@ class Ekskul extends CI_Controller
 		}
 
 		return redirect('ekskul/detail/' . $ekskul->ekskul_code);
+	}
+
+	public function print_ekskul()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'LAPORAN EKSTRAKURIKULER PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'EKSKUL_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.name, c.*');
+
+		$this->db->from('tb_master_ekskul AS a');
+
+		$this->db->join('tb_profile AS b', 'a.pic=b.username');
+
+		$this->db->join('tb_ekskul_schedule AS c', 'a.ekskul_code=c.ekskul_code');
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 23:59:00' . '")');
+
+		$this->db->order_by('a.id_master_ekskul', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'EKSTRAKURIKULER REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('ekskul/print_report', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
 	}
 
 }
