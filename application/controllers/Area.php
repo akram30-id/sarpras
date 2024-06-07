@@ -780,6 +780,55 @@ class Area extends CI_Controller
         $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
 	}
 
+	public function print_booking()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+		$status = $post['status'];
+
+		$this->data['title_pdf'] = 'REPORT MASTER BOOKING PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'MASTER_BOOKING_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.area_name, c.name');
+
+        $this->db->from('tb_submission_area AS a');
+
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+
+		$this->db->join('tb_profile AS c', 'c.username=a.user_submit');
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 00:00:00' . '")');
+
+		if ($status != 'ALL') {
+			$this->db->where('status_approval', $status);
+		}
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'MASTER BOOKING REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('area/print_booking', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
 }
 
 ?>
