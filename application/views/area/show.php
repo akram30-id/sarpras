@@ -1,11 +1,5 @@
-<div class="row justify-content-center">
-
-	<?php $this->load->view('flashdata'); ?>
-
-	<?php foreach ($areas as $area) :
-	?>
+<div class="row">
 	<div class="col-sm-10">
-
 		<button class="btn btn-primary mb-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
 			Cetak Laporan
 		</button>
@@ -32,6 +26,14 @@
 				</div>
 			</form>
 		</div>
+	</div>
+</div>
+<div class="row justify-content-center">
+	<?php $this->load->view('flashdata'); ?>
+
+	<?php foreach ($areas as $area) :
+	?>
+	<div class="col-sm-10">
 		<div class="card border-0 shadow" style="border-radius: 16px;">
 			<div class="card-body">
 				<div class="row justify-content-center align-items-center mt-3">
