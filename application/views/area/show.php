@@ -5,6 +5,33 @@
 	<?php foreach ($areas as $area) :
 	?>
 	<div class="col-sm-10">
+
+		<button class="btn btn-primary mb-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+			Cetak Laporan
+		</button>
+		<div class="collapse mb-3" id="collapseExample">
+			<form method="post" action="<?= base_url('area/print_report') ?>">
+				<div class="row align-items-end">
+					<div class="col-sm-3">
+						<div class="mb-3">
+							<label for="start">Dari Tanggal</label>
+							<input type="date" name="start" id="start" class="form-control">
+						</div>
+					</div>
+					<div class="col-sm-3">
+						<div class="mb-3">
+							<label for="end">Sampai Tanggal</label>
+							<input type="date" name="end" id="end" class="form-control">
+						</div>
+					</div>
+					<div class="col-sm-2">
+						<div class="mb-3">
+							<button type="submit" class="btn btn-primary">Cetak	</button>
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
 		<div class="card border-0 shadow" style="border-radius: 16px;">
 			<div class="card-body">
 				<div class="row justify-content-center align-items-center mt-3">
@@ -45,3 +72,18 @@
 	</div>
 	<?php endforeach; ?>
 </div>
+
+
+<script>
+	$("#start").on("change", function () {
+		const startDate = $(this).val();
+
+		$("#end").attr("min", startDate);
+	});
+
+	$("#end").on("change", function () {
+		const endDate = $(this).val();
+
+		$("#start").attr("max", endDate);
+	})
+</script>
