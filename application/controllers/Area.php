@@ -627,9 +627,8 @@ class Area extends CI_Controller
 	public function checkout_tables()
 	{
 		$post = $this->input->post();
-		$search = $post['search']['value'];
 
-		$result = $this->Area_m->getBookingByUserSubmit($this->session->user->username, $search);
+		$result = $this->Area_m->getBookingByUserSubmit($this->session->user->username, $post);
 
 		if ($result) {
 

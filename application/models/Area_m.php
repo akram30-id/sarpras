@@ -210,8 +210,12 @@ class Area_m extends CI_Model
 		return $query;
 	}
 
-	function getBookingByUserSubmit($user, $search = null)
+	function getBookingByUserSubmit($user, $post)
 	{
+		$search = $post['search']['value'];
+		$offset = $post['start'];
+		$limit = $post['length'];
+
 		$this->db->select('a.*, b.area_name, b.pic_area, c.name AS submitter_name');
 		$this->db->from('tb_submission_area AS a');
 		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
@@ -228,6 +232,8 @@ class Area_m extends CI_Model
 		}
 
 		$this->db->order_by('a.created_at', 'DESC');
+
+		$this->db->limit($limit, $offset);
 
 		$query = $this->db->get()->result();
 
