@@ -9,6 +9,7 @@ class Area extends CI_Controller
 	{
 		parent::__construct();
 		$this->load->model('Area_m');
+		$this->load->library('pdfgenerator');
 
 		if (!$this->session->has_userdata('user')) {
 			redirect('auth/index');
@@ -739,6 +740,44 @@ class Area extends CI_Controller
 		$this->_setFlashdata(true, 'Checkout Berhasil.');
 		$this->_writeLog('AREA_CHECKOUT', true, ['message' => 'Checkout Berhasil.'], $_SERVER);
 		return redirect('area/checkout');
+	}
+
+	public function print_report()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'REPORT MASTER AREA PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'MASTER_AREA_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.name');
+
+        $this->db->from('tb_master_area AS a');
+
+		$this->db->join('tb_profile AS b', 'a.pic_area=b.username');
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 00:00:00' . '")');
+		
+		$report = $this->db->get()->result();
+
+        $data = [
+            'title' => 'MASTER AREA REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('area/print_report', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
 	}
 
 }
