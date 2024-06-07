@@ -9,8 +9,10 @@
 					<form method="post" action="<?= base_url('item/print_item/area') ?>">
 				<?php } else { ?>
 					<form method="post" action="<?= base_url('item/print_item/non_area') ?>">
-				<?php }
-			} ?>
+				<?php } ?>
+			<?php } else { ?>
+				<form method="post" action="<?= base_url('item/print_item/non_area') ?>">
+			<?php } ?>
 				<div class="row align-items-end">
 					<div class="col-sm-3">
 						<div class="mb-3">
