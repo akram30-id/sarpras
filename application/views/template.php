@@ -277,7 +277,7 @@
             </a>
           </li>
 					<li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('user/reset') ?>">
               <i class="bi bi-circle"></i><span>Reset Password User</span>
             </a>
           </li>
@@ -291,12 +291,12 @@
         </a>
         <ul id="usersettings-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
           <li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('user/change') ?>">
               <i class="bi bi-circle"></i><span>Ganti Password</span>
             </a>
           </li>
 					<li>
-            <a href="components-alerts.html">
+            <a href="<?= base_url('user/update') ?>">
               <i class="bi bi-circle"></i><span>Update Profil</span>
             </a>
           </li>
