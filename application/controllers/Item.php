@@ -990,10 +990,11 @@ class Item extends CI_Controller
 		}
 		
 		if ($search) {
-			$this->db->like('d.inventory_name', $search);
-			$this->db->or_like('d.item_code', $search);
-			$this->db->or_like('b.user_notes', $search);
-			$this->db->or_like('a.user_input', $search);
+			$this->db->like('b.return_item_code', $search);
+			$this->db->or_like('d.inventory_name', $search);
+			// $this->db->or_like('d.item_code', $search);
+			// $this->db->or_like('b.user_notes', $search);
+			// $this->db->or_like('a.user_input', $search);
 		}
 
 		$this->db->order_by('a.id_approval_item', 'DESC');

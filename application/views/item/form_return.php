@@ -94,8 +94,9 @@
 				}
 			});
 		}
+	}).focus(function () {
+		$(this).autocomplete('search', '')
 	});
-
 
 
 	var canvas = document.getElementById('signatureCanvas');
