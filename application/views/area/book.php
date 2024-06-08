@@ -101,6 +101,8 @@
 			$("#area").val(ui.item.value); // Append selected value
 			$("#send-area").val(ui.item.value); // Append selected value
 		}
+	}).focus(function () {
+		$(this).autocomplete('search', '')
 	});
 
 </script>

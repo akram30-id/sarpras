@@ -65,6 +65,8 @@
 			$("#area").val(ui.item.value); // Append selected value
 			$("#send-area").val(ui.item.value); // Append selected value
 		}
+	}).focus(function () {
+		$(this).autocomplete('search', '')
 	});
 
 	$("#find-user").autocomplete({
@@ -87,6 +89,8 @@
 			$("#user").val(ui.item.value); // Append selected value
 			$("#send-user").val(ui.item.value); // Append selected value
 		}
+	}).focus(function () {
+		$(this).autocomplete('search', '')
 	});
 
 </script>

@@ -86,7 +86,9 @@
 			$("#area").val(ui.item.value); // Append selected value
 			$("#send-area").val(ui.item.value); // Append selected value
 		}
-	});
+	}).focus(function () {
+		$(this).autocomplete('search', '')
+	});;
 
 	$('input[name="thumbnail"]').on('change', function() {
 		const files = $(this)[0].files;
