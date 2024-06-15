@@ -81,7 +81,9 @@
         <li class="nav-item dropdown pe-3">
 
           <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
-            <img src="<?= $this->session->user->photo ?>" alt="Profile" class="rounded-circle">
+            <img src="<?= $this->session->user->photo == null 
+											? base_url('assets/img/apple-touch-icon.png')
+											: $this->session->user->photo ?>" alt="Profile" class="rounded-circle">
             <span class="d-none d-md-block dropdown-toggle ps-2"><?= $this->session->user->username; ?></span>
           </a><!-- End Profile Iamge Icon -->
 
