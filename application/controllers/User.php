@@ -55,23 +55,28 @@ class User extends CI_Controller
 			// return;
 
 			$headers = $_SERVER;
-			$avatar = $_FILES['avatar'];
 
-			$temp_name = $avatar['tmp_name'];
-			$image_name = $avatar['name'];
-
-			if ($avatar['size'] > 1048576) {
-				$this->_setFlashdata(false, 'Ukuran foto tidak boleh lebih dari 1 MB.');
-				redirect('user/register');
-				return;
+			if (!in_array($_FILES['avatar']['name'], ['', null])) {
+				$avatar = $_FILES['avatar'];
+	
+				$temp_name = $avatar['tmp_name'];
+				$image_name = $avatar['name'];
+	
+				if ($avatar['size'] > 1048576) {
+					$this->_setFlashdata(false, 'Ukuran foto tidak boleh lebih dari 1 MB.');
+					redirect('user/register');
+					return;
+				}
+	
+				// ambil image extension
+				$extension = explode('.', $image_name);
+				$extension = $extension[1];
+	
+				// Konversi gambar ke base64
+				$base64_image = 'data:image/' . $extension . ';base64,' . base64_encode(file_get_contents($temp_name));
+			} else {
+				$base64_image = null;
 			}
-
-			// ambil image extension
-			$extension = explode('.', $image_name);
-			$extension = $extension[1];
-
-			// Konversi gambar ke base64
-			$base64_image = 'data:image/' . $extension . ';base64,' . base64_encode(file_get_contents($temp_name));
 
 			$this->db->trans_begin();
 			$saveUser = $this->repository->create('tb_user', [
