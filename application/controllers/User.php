@@ -212,7 +212,6 @@ class User extends CI_Controller
 			$this->db->trans_begin();
 
 			// update tb_user
-			$this->db->set('role', $post['role']);
 			$this->db->set('user_input', $this->session->user->username);
 			$this->db->where('username', $username);
 			$saveUser = $this->db->update('tb_user');
