@@ -968,39 +968,46 @@ class Item extends CI_Controller
 		$this->load->view('template', $data);
 	}
 
-	private function masterReturn($where = [], $search = null, $post = null)
+	private function masterReturn($where = [], $search = null, $postType = null, $post = null)
 	{
-		if ($post == 'return') {
+		$offset = $post['start'];
+		$limit = $post['length'];
+
+		if ($postType == 'return') {
 			$this->db->select('a.*, b.return_item_code, b.user_notes, b.user_submit, b.signature, c.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
 			$this->db->from('tb_approval_item AS a');
 			$this->db->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item');
 			$this->db->join('tb_submission_item AS c', 'b.submission_item_code=c.submission_item_code');
 			$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
+			$this->db->join('tb_master_area AS e', 'd.area_code=e.area_code', 'left');
 
 			if ($search) {
 				$this->db->like('b.return_item_code', $search);
-				$this->db->or_like('d.inventory_name', $search);
-				$this->db->or_like('b.user_submit', $search);
 				// $this->db->or_like('d.item_code', $search);
 				// $this->db->or_like('b.user_notes', $search);
 				// $this->db->or_like('a.user_input', $search);
 			}
+
+			$this->db->where('b.user_submit', trim($this->session->user->username));
+			$this->db->or_where('e.pic_area', trim($this->session->user->username));
 		}
 
-		if ($post != null && $post == 'request') {
+		if ($postType != null && $postType == 'request') {
 			$this->db->select('a.*, b.user_notes, b.user_submit, b.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
 			$this->db->from('tb_approval_item AS a');
 			$this->db->join('tb_submission_item AS b', 'a.submission_item_code=b.submission_item_code');
 			$this->db->join('tb_master_item AS d', 'b.item_code=d.item_code');
+			$this->db->join('tb_master_area AS e', 'd.area_code=e.area_code');
 
 			if ($search) {
 				$this->db->like('b.submission_item_code', $search);
-				$this->db->or_like('b.user_submit', $search);
-				$this->db->or_like('d.inventory_name', $search);
 				// $this->db->or_like('d.item_code', $search);
 				// $this->db->or_like('b.user_notes', $search);
 				// $this->db->or_like('a.user_input', $search);
 			}
+
+			$this->db->where('b.user_submit', trim($this->session->user->username));
+			$this->db->or_where('e.pic_area', trim($this->session->user->username));
 		}
 
 		if (!empty($where)) {
@@ -1008,6 +1015,8 @@ class Item extends CI_Controller
 		}
 
 		$this->db->order_by('a.id_approval_item', 'DESC');
+
+		$this->db->limit($limit, $offset);
 
 		$masterReturn = $this->db->get()->result();
 
@@ -1019,7 +1028,7 @@ class Item extends CI_Controller
 		$post = $this->input->post();
 		$search = $post['search']['value'];
 
-		$masterReturn = $this->masterReturn([], $search, $postType);
+		$masterReturn = $this->masterReturn([], $search, $postType, $post);
 
 		$data = [];
 
