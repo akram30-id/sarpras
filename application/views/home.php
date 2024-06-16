@@ -1,5 +1,4 @@
 <section class="section dashboard">
-	<div id="url" data-url_statistic="<?= $statistic ?>"></div>
 	<div class="row">
 
 		<!-- Left side columns -->
@@ -114,72 +113,83 @@
 					<div id="reportsChart"></div>
 
 					<script>
-						const url_statistic = $("#url").data("url_statistic");
-						$.ajax({
-							type: "GET",
-							url: url_statistic,
-							dataType: "json",
-							success: function (response) {
-								console.info(response);
-								document.addEventListener("DOMContentLoaded", () => {
-								new ApexCharts(document.querySelector("#reportsChart"), {
-								series: [{
-									name: 'Users',
-									// data: [31, 40, 28, 51, 42, 82, 56],
-									data: response.user,
-								}, {
-									name: 'Ekskul',
-									// data: [11, 32, 45, 32, 34, 52, 41]
-									data: response.ekskul,
-								}, {
-									name: 'Item Booked',
-									// data: [15, 11, 32, 18, 9, 24, 11]
-									data: response.submission_item,
+						let userCount = [];
+						<?php foreach ($statistic['user'] as $index => $user){ ?>
+							userCount.push(<?= $user ?>);
+						<?php } ?>
+
+						let ekskulCount = [];
+						<?php foreach ($statistic['ekskul'] as $index => $value){ ?>
+							ekskulCount.push(<?= $value ?>);
+						<?php } ?>
+
+						let itemCount = [];
+						<?php foreach ($statistic['submission_item'] as $index => $value){ ?>
+							itemCount.push(<?= $value ?>);
+						<?php } ?>
+
+						let areaCount = [];
+						<?php foreach ($statistic['submission_area'] as $index => $value){ ?>
+							areaCount.push(<?= $value ?>);
+						<?php } ?>
+
+						document.addEventListener("DOMContentLoaded", () => {
+							new ApexCharts(document.querySelector("#reportsChart"), {
+							series: [{
+								name: 'Users',
+								// data: [31, 40, 28, 51, 42, 82, 56],
+								data: userCount,
+							}, {
+								name: 'Ekskul',
+								// data: [11, 32, 45, 32, 34, 52, 41]
+								data: ekskulCount,
+							}, {
+								name: 'Item Booked',
+								// data: [15, 11, 32, 18, 9, 24, 11]
+								data: itemCount,
+							},
+							{
+								name: 'Area Booked',
+								// data: [15, 11, 32, 18, 9, 24, 11]
+								data: areaCount,
+							}],
+							chart: {
+								height: 350,
+								type: 'area',
+								toolbar: {
+								show: false
 								},
-								{
-									name: 'Area Booked',
-									// data: [15, 11, 32, 18, 9, 24, 11]
-									data: response.submission_area,
-								}],
-								chart: {
-									height: 350,
-									type: 'area',
-									toolbar: {
-									show: false
-									},
-								},
-								markers: {
-									size: 4
-								},
-								colors: ['#4154f1', '#2eca6a', '#ff771d'],
-								fill: {
-									type: "gradient",
-									gradient: {
-									shadeIntensity: 1,
-									opacityFrom: 0.3,
-									opacityTo: 0.4,
-									stops: [0, 90, 100]
-									}
-								},
-								dataLabels: {
-									enabled: false
-								},
-								stroke: {
-									curve: 'smooth',
-									width: 2
-								},
-								xaxis: {
-									type: 'category',
-									categories: ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER']
-								},
-								tooltip: {
-									x: {
-									format: 'dd/MM/yy HH:mm'
-									},
+							},
+							markers: {
+								size: 4
+							},
+							colors: ['#4154f1', '#2eca6a', '#ff771d'],
+							fill: {
+								type: "gradient",
+								gradient: {
+								shadeIntensity: 1,
+								opacityFrom: 0.3,
+								opacityTo: 0.4,
+								stops: [0, 90, 100]
 								}
-								}).render();
-							});	
+							},
+							dataLabels: {
+								enabled: false
+							},
+							stroke: {
+								curve: 'smooth',
+								width: 2
+							},
+							xaxis: {
+								type: 'category',
+								categories: ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER']
+							},
+							tooltip: {
+								x: {
+								format: 'dd/MM/yy HH:mm'
+								},
 							}
+							}).render();
 						});
 					</script>
 					<!-- End Line Chart -->

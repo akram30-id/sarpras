@@ -21,7 +21,8 @@ class Home extends CI_Controller
 		$data['total_ekskul'] = $this->_getTotalEkskul();
 		$data['total_pending_area'] = $this->_getTotalSubmissionArea();
 		$data['total_pending_item'] = $this->_getTotalSubmissionItem();
-		$data['statistic'] = base_url('home/get_annual_statistic');
+		// $data['statistic'] = base_url('home/get_annual_statistic');
+		$data['statistic'] = $this->get_annual_statistic();
 		$data['content'] = $this->load->view('home', $data, true);
 		$this->load->view('template', $data);
 	}
@@ -158,7 +159,7 @@ class Home extends CI_Controller
 		return $data;
 	}
 
-	public function get_annual_statistic()
+	private function get_annual_statistic()
 	{
 		$months = $this->getMonths();
 
@@ -170,7 +171,8 @@ class Home extends CI_Controller
 			$result['submission_area'][] = $this->_getDataAnnual(intval($idxMonth) + 1)['submission_area'];
 		}
 
-		echo json_encode($result);
+		// echo json_encode($result);
+		return $result;
 	}
 
 }
