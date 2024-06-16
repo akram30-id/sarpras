@@ -484,10 +484,8 @@ class Area extends CI_Controller
 		if ($result) {
 			$no = 1;
 			foreach ($result as $key => $value) {
-				
-				if ($this->session->user->role > 2) { // kalo role nya selan guru dan admin
-					$button = '<a href="' . base_url('area/approve') . '" class="btn btn-primary btn-sm rounded-pill">Refresh</a>';
-				} else {
+
+				if (trim($value->pic_area) == trim($this->session->user->username)) {
 					if ($value->status_approval == "PENDING") {
 						$button = '<div class="d-flex align-items-center justify-content-center">
 										<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>
@@ -497,7 +495,23 @@ class Area extends CI_Controller
 										<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/0') . '" class="btn btn-danger btn-sm rounded-pill">Disapprove</a>
 									</div>';
 					}
+				} else {
+					$button = '<a href="' . base_url('area/approve') . '" class="btn btn-primary btn-sm rounded-pill">Refresh</a>';
 				}
+				
+				// if ($this->session->user->role > 2) { // kalo role nya selan guru dan admin
+				// 	$button = '<a href="' . base_url('area/approve') . '" class="btn btn-primary btn-sm rounded-pill">Refresh</a>';
+				// } else {
+				// 	if ($value->status_approval == "PENDING") {
+				// 		$button = '<div class="d-flex align-items-center justify-content-center">
+				// 						<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>
+				// 					</div>';
+				// 	} else {
+				// 		$button = '<div class="d-flex align-items-center justify-content-center">
+				// 						<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/0') . '" class="btn btn-danger btn-sm rounded-pill">Disapprove</a>
+				// 					</div>';
+				// 	}
+				// }
 
 				$data[] = [
 					$no++,

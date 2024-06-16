@@ -212,7 +212,7 @@
               <i class="bi bi-circle"></i><span>Master Item Area</span>
             </a>
           </li>
-					<?php if (in_array($this->session->user->role, [1,2])){ ?>
+					<?php if (in_array($this->session->user->role, [1])){ ?>
 						<li>
 							<a href="<?= base_url('item/add') ?>">
 								<i class="bi bi-circle"></i><span>Tambah Item</span>

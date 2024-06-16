@@ -340,16 +340,50 @@ class Item extends CI_Controller
 		if ($masterItems) {
 			$no = 1;
 			foreach ($masterItems as $key => $value) {
-				$getReturnApproval = $this->db->select('a.id_return_item')
-												->from('tb_approval_item AS a')
-												->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item')
-												->where('b.submission_item_code', $value->submission_item_code)
-												->where_in('a.status_approval', ['APPROVE', 'REJECT'])
+				$getReturnApproval = $this->db->select('a.*, b.*')
+												->from('tb_return_item AS a')
+												->join('tb_approval_item AS b', 'a.id_return_item=b.id_return_item')
+												->where('a.submission_item_code', $value->submission_item_code)
 												->get()->row();
 
-				if ($getReturnApproval) { // kalo barangnya udah dibalikin dan udah diapprove
+				// kondisi barang return yg udah diapprove
+				if ($getReturnApproval->status_approval == 'APPROVE') {
 					continue;
 				}
+
+				// kondisi barang request yg masih pending
+				if ($getReturnApproval->status_approval == 'PENDING' && $getReturnApproval->approval_item_flag == 1) {
+					// boleh cancel, tapi gaboleh report
+					$button = '<div class="d-flex align-items-center justify-content-center">
+									<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
+										Cancel
+									</button>
+								</div>
+								<div class="flex mt-2">
+									<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
+										<div class="card card-body pt-2" style="font-size: 9pt;">
+											Apakah Anda yakin?
+											<div class="d-flex justify-content-end">
+												<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
+												<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
+											</div>
+										</div>
+									</div>
+								</div>';
+				} 
+
+				// kondisi barang RETURN yg BELUM approved
+				if ($getReturnApproval->status_approval == 'PENDING' && $getReturnApproval->approval_item_flag == 2) {
+					// boleh report, gaboleh cancel
+					$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/report/' . $value->submission_item_code) . '" target="_blank" class="btn btn-sm btn-secondary rounded-pill">
+										Laporan
+									</a>
+								</div>';
+				}
+				// if (($this->session->user->role == 1 || $this->session->user->username == $value->user_submit) && date('Y-m-d H:i', strtotime($value->end_date)) > date('Y-m-d H:i')) {
+					
+				// }
 
 				$data[] = [
 					$no++,
@@ -362,42 +396,7 @@ class Item extends CI_Controller
 					$value->user_notes,
 					date('d F Y H:i', strtotime($value->created_at)),
 					$value->user_submit,
-					(($this->session->user->role == 1 || $this->session->user->username == $value->user_submit) && date('Y-m-d H:i', strtotime($value->end_date)) > date('Y-m-d H:i'))
-						? '<div class="d-flex align-items-center justify-content-center">
-								<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
-									Cancel
-								</button>
-								<a href="' . base_url('item/report/' . $value->submission_item_code) . '" class="btn btn-sm btn-secondary rounded-pill">
-									Laporan
-								</a>
-							</div>
-							<div class="flex mt-2">
-								<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
-									<div class="card card-body pt-2" style="font-size: 9pt;">
-										Apakah Anda yakin?
-										<div class="d-flex justify-content-end">
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
-										</div>
-									</div>
-								</div>
-							</div>'
-						: '<div class="d-flex align-items-center justify-content-center">
-								<a href="' . base_url('item/report/' . $value->submission_item_code) . '" class="btn btn-sm btn-secondary rounded-pill">
-									Laporan
-								</a>
-							</div>
-							<div class="flex mt-2">
-								<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
-									<div class="card card-body pt-2" style="font-size: 9pt;">
-										Apakah Anda yakin?
-										<div class="d-flex justify-content-end">
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
-										</div>
-									</div>
-								</div>
-							</div>'
+					$button
 				];
 			}
 
@@ -1015,8 +1014,8 @@ class Item extends CI_Controller
 
 		if ($masterReturn) {
 			$no = 1;
-			$isPIC = false;
 			foreach ($masterReturn as $key => $value) {
+				$isPIC = false;
 				$areaCode = $value->area_code;
 
 				if ($areaCode != null) {
@@ -1024,9 +1023,36 @@ class Item extends CI_Controller
 									->from('tb_master_area')
 									->where('area_code', $areaCode)
 									->get()->row();
+					if ($getPIC->pic_area != null) {
+						if ($getPIC->pic_area == $this->session->user->username) {
+							$isPIC = true;
+						}
+					}
+				}
 
-					if ($getPIC) {
-						$isPIC = true;
+				if ($this->session->user->role == 1) {
+					if ($value->status_approval != 'PENDING') {
+						$button = '<p class="text-primary"><i>' . $value->status_approval . '</i></p>';
+					} else {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('item/approve_request/' . $value->id_approval_item) . '/' . $value->approval_item_flag . '" class="btn btn-sm btn-secondary rounded-pill">
+											Approve
+										</a>
+									</div>';
+					}
+				} else {
+					if ($isPIC == true) {
+						if ($value->status_approval != 'PENDING') {
+							$button = '<p class="text-primary"><i>' . $value->status_approval . '</i></p>';
+						} else {
+							$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('item/approve_request/' . $value->id_approval_item) . '/' . $value->approval_item_flag . '" class="btn btn-sm btn-secondary rounded-pill">
+											Approve
+										</a>
+									</div>';
+						}
+					} else {
+						$button = '<p class="text-primary"><i>' . $value->status_approval . '</i></p>';
 					}
 				}
 
@@ -1042,16 +1068,9 @@ class Item extends CI_Controller
 					$value->user_submit,
 					'<img src="' . $value->signature . '" height="32">',
 					$value->user_input,
-					($this->session->user->role == 1 || $isPIC == true)
-						? ($value->status_approval == 'PENDING')
-							?  '<div class="d-flex align-items-center justify-content-center">
-									<a href="' . base_url('item/approve_request/' . $value->id_approval_item) . '/' . $value->approval_item_flag . '" class="btn btn-sm btn-secondary rounded-pill">
-										Approve
-									</a>
-								</div>'
-							: '<p class="text-primary"><i>' . $value->status_approval . '</i></p>'
-						: ''
+					$button
 				];
+
 			}
 
 			$output = [
@@ -1324,7 +1343,7 @@ class Item extends CI_Controller
         //orientasi paper potrait / landscape
         $orientation = "potrait";
 
-		$this->db->select('a.*, b.name, c.submission_item_code, d.item_code, d.inventory_name, d.qty');
+		$this->db->select('a.*, b.name, c.submission_item_code, d.item_code, d.inventory_name, c.qty');
 
 		$this->db->from('tb_approval_item AS a');
 
