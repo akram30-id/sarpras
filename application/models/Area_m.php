@@ -175,11 +175,8 @@ class Area_m extends CI_Model
 		$this->db->from('tb_submission_area AS a');
 		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
 		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
-		if ($this->session->user->role == 2) {
-			$this->db->where('b.pic_area', $pic);
-		} else if ($this->session->user->role == 3) {
-			$this->db->where('a.user_submit', $this->session->user->username);
-		}
+		$this->db->where('b.pic_area', $pic);
+		$this->db->or_where('a.user_submit', $pic);
 
 		if (!in_array($search, ['', null])) {
 			$this->db->like('b.area_name', $search);
