@@ -988,8 +988,8 @@ class Item extends CI_Controller
 				// $this->db->or_like('a.user_input', $search);
 			}
 
-			$this->db->where('b.user_submit', trim($this->session->user->username));
-			$this->db->or_where('e.pic_area', trim($this->session->user->username));
+			$this->db->where('(b.user_submit = "' . trim($this->session->user->username) . '" OR e.pic_area="' . trim($this->session->user->username) . '")');
+			// $this->db->or_where('e.pic_area', trim($this->session->user->username));
 		}
 
 		if ($postType != null && $postType == 'request') {
@@ -1006,8 +1006,8 @@ class Item extends CI_Controller
 				// $this->db->or_like('a.user_input', $search);
 			}
 
-			$this->db->where('b.user_submit', trim($this->session->user->username));
-			$this->db->or_where('e.pic_area', trim($this->session->user->username));
+			$this->db->where('(b.user_submit = "' . trim($this->session->user->username) . '" OR e.pic_area="' . trim($this->session->user->username) . '")');
+			// $this->db->or_where('e.pic_area', trim($this->session->user->username));
 		}
 
 		if (!empty($where)) {
