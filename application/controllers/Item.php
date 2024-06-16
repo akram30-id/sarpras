@@ -345,45 +345,46 @@ class Item extends CI_Controller
 												->join('tb_approval_item AS b', 'a.id_return_item=b.id_return_item')
 												->where('a.submission_item_code', $value->submission_item_code)
 												->get()->row();
+						
+				$button = '';
 
-				// kondisi barang return yg udah diapprove
-				if ($getReturnApproval->status_approval == 'APPROVE') {
-					continue;
-				}
+				if ($getReturnApproval) {
+					// kondisi barang return yg udah diapprove
+					if ($getReturnApproval->status_approval == 'APPROVE') {
+						continue;
+					}
 
-				// kondisi barang request yg masih pending
-				if ($getReturnApproval->status_approval == 'PENDING' && $getReturnApproval->approval_item_flag == 1) {
-					// boleh cancel, tapi gaboleh report
-					$button = '<div class="d-flex align-items-center justify-content-center">
-									<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
-										Cancel
-									</button>
-								</div>
-								<div class="flex mt-2">
-									<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
-										<div class="card card-body pt-2" style="font-size: 9pt;">
-											Apakah Anda yakin?
-											<div class="d-flex justify-content-end">
-												<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
-												<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
+					// kondisi barang request yg masih pending
+					if ($getReturnApproval->status_approval == 'PENDING' && $getReturnApproval->approval_item_flag == 1) {
+						// boleh cancel, tapi gaboleh report
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
+											Cancel
+										</button>
+									</div>
+									<div class="flex mt-2">
+										<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
+											<div class="card card-body pt-2" style="font-size: 9pt;">
+												Apakah Anda yakin?
+												<div class="d-flex justify-content-end">
+													<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
+													<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
+												</div>
 											</div>
 										</div>
-									</div>
-								</div>';
-				} 
+									</div>';
+					} 
 
-				// kondisi barang RETURN yg BELUM approved
-				if ($getReturnApproval->status_approval == 'PENDING' && $getReturnApproval->approval_item_flag == 2) {
-					// boleh report, gaboleh cancel
-					$button = '<div class="d-flex align-items-center justify-content-center">
-									<a href="' . base_url('item/report/' . $value->submission_item_code) . '" target="_blank" class="btn btn-sm btn-secondary rounded-pill">
-										Laporan
-									</a>
-								</div>';
+					// kondisi barang RETURN yg BELUM approved
+					if ($getReturnApproval->status_approval == 'PENDING' && $getReturnApproval->approval_item_flag == 2) {
+						// boleh report, gaboleh cancel
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('item/report/' . $value->submission_item_code) . '" target="_blank" class="btn btn-sm btn-secondary rounded-pill">
+											Laporan
+										</a>
+									</div>';
+					}
 				}
-				// if (($this->session->user->role == 1 || $this->session->user->username == $value->user_submit) && date('Y-m-d H:i', strtotime($value->end_date)) > date('Y-m-d H:i')) {
-					
-				// }
 
 				$data[] = [
 					$no++,
@@ -501,7 +502,7 @@ class Item extends CI_Controller
 
 			$this->_setFlashdata(true, 'Request item berhasil.');
 			$this->_writeLog('ITEM_REQ', true, $post, $headers);
-			return redirect('item/request');
+			return redirect('item/approve');
 
 		} catch (\Throwable $th) {
 			$this->_setFlashdata(false, 'Internal Server Error');
@@ -975,6 +976,15 @@ class Item extends CI_Controller
 			$this->db->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item');
 			$this->db->join('tb_submission_item AS c', 'b.submission_item_code=c.submission_item_code');
 			$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
+
+			if ($search) {
+				$this->db->like('b.return_item_code', $search);
+				$this->db->or_like('d.inventory_name', $search);
+				$this->db->or_like('b.user_submit', $search);
+				// $this->db->or_like('d.item_code', $search);
+				// $this->db->or_like('b.user_notes', $search);
+				// $this->db->or_like('a.user_input', $search);
+			}
 		}
 
 		if ($post != null && $post == 'request') {
@@ -982,18 +992,19 @@ class Item extends CI_Controller
 			$this->db->from('tb_approval_item AS a');
 			$this->db->join('tb_submission_item AS b', 'a.submission_item_code=b.submission_item_code');
 			$this->db->join('tb_master_item AS d', 'b.item_code=d.item_code');
+
+			if ($search) {
+				$this->db->like('b.submission_item_code', $search);
+				$this->db->or_like('b.user_submit', $search);
+				$this->db->or_like('d.inventory_name', $search);
+				// $this->db->or_like('d.item_code', $search);
+				// $this->db->or_like('b.user_notes', $search);
+				// $this->db->or_like('a.user_input', $search);
+			}
 		}
 
 		if (!empty($where)) {
 			$this->db->where($where);
-		}
-		
-		if ($search) {
-			$this->db->like('b.return_item_code', $search);
-			$this->db->or_like('d.inventory_name', $search);
-			// $this->db->or_like('d.item_code', $search);
-			// $this->db->or_like('b.user_notes', $search);
-			// $this->db->or_like('a.user_input', $search);
 		}
 
 		$this->db->order_by('a.id_approval_item', 'DESC');

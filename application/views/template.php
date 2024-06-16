@@ -220,7 +220,7 @@
 						</li>
 					<?php } ?>
 					<li>
-            <a href="<?= base_url('item/request') ?>">
+            <a href="<?= base_url('item/form_request') ?>">
               <i class="bi bi-circle"></i><span>Request Pinjam Item</span>
             </a>
           </li>
