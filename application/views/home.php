@@ -103,14 +103,6 @@
 
 			</div><!-- End Submission Item Card -->
 
-			<?php 
-			
-				// echo '<pre>';
-				// print_r($statistic['user']);
-				// return;
-			
-			?>
-
 			<!-- Reports -->
 			<div class="col-12">
 				<div class="card">
@@ -128,6 +120,7 @@
 							url: url_statistic,
 							dataType: "json",
 							success: function (response) {
+								console.info(response);
 								document.addEventListener("DOMContentLoaded", () => {
 								new ApexCharts(document.querySelector("#reportsChart"), {
 								series: [{
