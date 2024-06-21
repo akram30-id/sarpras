@@ -65,6 +65,12 @@ class Auth extends CI_Controller
 				$this->session->set_userdata('user', $user);
 			}
 
+			if ($this->_isPIC(trim($user->username))) {
+				$user->is_pic = true;
+			} else {
+				$user->is_pic = false;
+			}
+
 			$this->session->set_flashdata('success', 'Login Berhasil');
 
 			// success login logging
@@ -82,6 +88,21 @@ class Auth extends CI_Controller
 
 			redirect('auth/index');
 		}
+	}
+
+	private function _isPIC($username)
+	{
+		$area = $this->db->get_where('tb_master_area', ['pic_area' => $username])->row();
+
+		if ($this->session->user->role == 1) {
+			return true;
+		}
+
+		if ($area) {
+			return true;
+		}
+
+		return false;
 	}
 
 	public function logout($username)

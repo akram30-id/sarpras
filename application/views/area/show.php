@@ -49,7 +49,7 @@
 						<br>
 						<small style="font-size: 8pt;"><i><b>Created At: <?= date('d F Y', strtotime($area->created_at)) ?></b></i></small>
 
-						<?php if($this->session->user->role == 1){ ?>
+						<?php if($this->session->user->role == 1 || $area->is_pic == true){ ?>
 						<div class="row mt-3">
 							<div class="col-sm-2 d-grid mt-2">
 								<a href="<?= base_url('area/edit/' . $area->area_code) ?>" class="btn btn-primary rounded-pill btn-sm d-block">Edit</a>

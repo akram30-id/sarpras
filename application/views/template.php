@@ -84,12 +84,12 @@
             <img src="<?= $this->session->user->photo == null 
 											? base_url('assets/img/apple-touch-icon.png')
 											: $this->session->user->photo ?>" alt="Profile" class="rounded-circle">
-            <span class="d-none d-md-block dropdown-toggle ps-2"><?= $this->session->user->username; ?></span>
+            <span class="d-none d-md-block dropdown-toggle ps-2"><?= $this->session->user->name; ?></span>
           </a><!-- End Profile Iamge Icon -->
 
           <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
             <li class="dropdown-header">
-              <h6><?= $this->session->user->name; ?></h6>
+              <h6><?= $this->session->user->username; ?></h6>
               <span><?= $this->session->user->role_name; ?></span>
             </li>
             <li>
@@ -97,7 +97,7 @@
             </li>
 
             <li>
-              <a class="dropdown-item d-flex align-items-center" href="users-profile.html">
+              <a class="dropdown-item d-flex align-items-center" href="<?= base_url('user/update') ?>">
                 <i class="bi bi-person"></i>
                 <span>My Profile</span>
               </a>
@@ -107,7 +107,7 @@
             </li>
 
             <li>
-              <a class="dropdown-item d-flex align-items-center" href="users-profile.html">
+              <a class="dropdown-item d-flex align-items-center" href="<?= base_url('user/change') ?>">
                 <i class="bi bi-gear"></i>
                 <span>Account Settings</span>
               </a>
@@ -184,11 +184,13 @@
               <i class="bi bi-circle"></i><span>Jadwal Booking Area</span>
             </a>
           </li>
+					<?php if ($this->session->user->role == 1 || $this->session->user->is_pic == true){ ?>
 					<li>
             <a href="<?= base_url('area/approve') ?>">
               <i class="bi bi-circle"></i><span>Approval Booking Area</span>
             </a>
           </li>
+					<?php } ?>
 					<li>
             <a href="<?= base_url('area/checkout') ?>">
               <i class="bi bi-circle"></i><span>Checkout</span>
@@ -212,7 +214,7 @@
               <i class="bi bi-circle"></i><span>Master Item Area</span>
             </a>
           </li>
-					<?php if (in_array($this->session->user->role, [1])){ ?>
+					<?php if ($this->session->user->role == 1 || $this->session->user->is_pic == true){ ?>
 						<li>
 							<a href="<?= base_url('item/add') ?>">
 								<i class="bi bi-circle"></i><span>Tambah Item</span>
@@ -220,7 +222,7 @@
 						</li>
 					<?php } ?>
 					<li>
-            <a href="<?= base_url('item/form_request') ?>">
+            <a href="<?= base_url('item/request') ?>">
               <i class="bi bi-circle"></i><span>Request Pinjam Item</span>
             </a>
           </li>
@@ -234,7 +236,7 @@
 							<i class="bi bi-circle"></i><span>Pengembalian Item</span>
 						</a>
 					</li>
-					<?php if (in_array($this->session->user->role, [1,2])){ ?>
+					<?php if ($this->session->user->role == 1 || $this->session->user->is_pic == true){ ?>
 						<li>
 							<a href="<?= base_url('item/approve') ?>">
 								<i class="bi bi-circle"></i><span>Approval Item Pinjaman</span>

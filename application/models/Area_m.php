@@ -176,7 +176,34 @@ class Area_m extends CI_Model
 		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
 		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
 		$this->db->where('b.pic_area', $pic);
-		$this->db->or_where('a.user_submit', $pic);
+
+		if (!in_array($search, ['', null])) {
+			$this->db->like('b.area_name', $search);
+		}
+
+		$this->db->order_by('a.created_at', 'DESC');
+
+		$this->db->limit($limit, $offset);
+
+		$query = $this->db->get()->result();
+
+		return $query;
+	}
+
+	function getBookingSubmit($user)
+	{
+		$post = $this->input->post();
+
+		$search = $post['search']['value'];
+		$offset = $post['start'];
+		$limit = $post['length'];
+
+		$this->db->select('a.*, b.area_name, b.pic_area, d.name AS pic_name, c.name AS submitter_name');
+		$this->db->from('tb_submission_area AS a');
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+		$this->db->join('tb_profile AS c', 'a.user_submit=c.username');
+		$this->db->join('tb_profile AS d', 'b.pic_area=d.username');
+		$this->db->where('a.user_submit', $user);
 
 		if (!in_array($search, ['', null])) {
 			$this->db->like('b.area_name', $search);

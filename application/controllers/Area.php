@@ -32,6 +32,13 @@ class Area extends CI_Controller
 
 		if ($areaMaster) {
 			foreach ($areaMaster as $key => $value) {
+
+				if (trim($value->pic_area) == trim($this->session->user->username)) {
+					$value->is_pic = true;
+				} else {
+					$value->is_pic = false;
+				}
+
 				$images = $this->repository->findMany('tb_photo_area', ['area_code' => $value->area_code], 'photo_url');
 				$value->photos = [];
 				if ($images) {
@@ -204,17 +211,8 @@ class Area extends CI_Controller
 				}
 			}
 
-			if (!isset($post['images'])) {
-				redirect('area/edit/photos/' . $areaCode);
-				return;
-			}
-
 			// Proses unggah gambar
 			$images = $_FILES['images'];
-
-			// echo '<pre>';
-			// print_r(count($images['name']));
-			// return;
 
 			// Validasi jumlah gambar maksimal
 			if (count($images['name']) > 5) {
@@ -252,7 +250,7 @@ class Area extends CI_Controller
 				$this->_setFlashdata(true, 'Berhasil Upload Foto Area.');
 				$post['images'] = $images;
 				$this->_writeLog('AREA_PHOTO_UPDATE', true, $post, $headers);
-				redirect('area/edit/photos/' . $areaCode);
+				redirect('area/master');
 				return;
 			} else {
 
@@ -311,7 +309,7 @@ class Area extends CI_Controller
 			$this->_writeLog('AREA_UPDATE', false, $post, $headers); // tulis log
 		}
 
-		redirect('area/add/photos/' . $areaCode);
+		redirect('area/edit/photos/' . $areaCode);
 	}
 
 	public function delete($areaCode)
@@ -388,6 +386,37 @@ class Area extends CI_Controller
 		$this->db->select('a.area_code, a.area_name');
 		$this->db->from('tb_master_area AS a');
 
+		// kalau user PIC
+		if ($this->session->user->role != 1) {
+			if ($this->session->user->is_pic) {
+				$this->db->where('a.pic_area', $this->session->user->username);
+			}
+		}
+
+		if (!in_array($get['search'], [null, ""])) {
+			$this->db->like('a.area_name', $get['search']);
+		}
+
+		$this->db->limit(100);
+
+		$result = $this->db->get()->result();
+
+		$data = [];
+
+		foreach ($result as $key => $value) {
+			$data[] = $value->area_code . ' - ' . $value->area_name;
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($data));
+	}
+
+	public function find_area_booking()
+	{
+		$get = $this->input->get();
+
+		$this->db->select('a.area_code, a.area_name');
+		$this->db->from('tb_master_area AS a');
+
 		if (!in_array($get['search'], [null, ""])) {
 			$this->db->like('a.area_name', $get['search']);
 		}
@@ -434,15 +463,70 @@ class Area extends CI_Controller
 		redirect('area/master');
 	}
 
-	public function book()
+	public function form_book()
 	{
 		$data['title'] = 'Booking Area';
 		$data['module'] = 'Area Page';
 		$data['areas'] = $this->_getAreaMaster();
-		$data['findArea'] = base_url('area/find_area');
+		$data['findArea'] = base_url('area/find_area_booking');
+		$data['content'] = $this->load->view('area/form_book', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function book()
+	{
+		$data['title'] = 'Booking Area';
+		$data['module'] = 'Area Page';
+		$data['datatables'] = base_url('area/datatables_booked');
 		$data['content'] = $this->load->view('area/book', $data, true);
 
 		$this->load->view('template', $data);
+	}
+
+	public function datatables_booked()
+	{
+		$result = $this->Area_m->getBookingSubmit($this->session->user->username);
+
+		$post = $this->input->post();
+
+		$data = [];
+
+		if ($result) {
+			$no = 1;
+			foreach ($result as $key => $value) {
+
+				$data[] = [
+					$no++,
+					$value->submission_area_code,
+					$value->status_approval == "PENDING"
+						? "<span style='color: red;'><b>" . $value->status_approval . "</b></span>"
+						: "<span clas='fw-bold'>" . $value->status_approval . "</span>",
+					$value->area_name . ' <small>#' . $value->area_code . '</small>',
+					$value->submitter_name . ' (' . $value->user_submit . ')',
+					date('d F Y H:i', strtotime($value->start_date)),
+					date('d F Y H:i', strtotime($value->end_date)),
+					$value->user_notes,
+					$value->pic_name . ' (' . $value->pic_area . ')'
+				];
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => $post['length'],
+				'recordsFiltered' => 10000,
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
 	}
 
 	public function do_booking()
@@ -456,12 +540,12 @@ class Area extends CI_Controller
 				$this->_setFlashdata(false, $save['message']);
 				$post['message'] = $save['message'];
 				$this->_writeLog('AREA_BOOK', false, $post, $headers);
-				return redirect('area/book');
+				return redirect('area/form_book');
 			}
 
 			$this->_setFlashdata(true, 'Booking Berhasil Dikirim.');
 			$this->_writeLog('AREA_BOOK', true, $post, $headers);
-			return redirect('area/approve');
+			return redirect('area/book');
 
 		} catch (\Throwable $th) {
 			$this->_setFlashdata(false, 'Internal Server Error');
@@ -469,7 +553,7 @@ class Area extends CI_Controller
 			$post['error_line'] = $th->getLine();
 			$this->_writeLog('AREA_BOOK', false, $post, $headers);
 
-			return redirect('area/book');
+			return redirect('area/form_book');
 		}
 	}
 
@@ -819,6 +903,61 @@ class Area extends CI_Controller
 		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
 
 		$this->db->join('tb_profile AS c', 'c.username=a.user_submit');
+
+		$this->db->where('a.user_submit', $this->session->user->username);
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 00:00:00' . '")');
+
+		if ($status != 'ALL') {
+			$this->db->where('status_approval', $status);
+		}
+
+		$this->db->order_by('a.id_submission_area', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'MASTER BOOKING REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('area/print_booking', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
+	public function print_approval()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+		$status = $post['status'];
+
+		$this->data['title_pdf'] = 'REPORT MASTER BOOKING PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'MASTER_BOOKING_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.area_name, c.name');
+
+        $this->db->from('tb_submission_area AS a');
+
+		$this->db->join('tb_master_area AS b', 'a.area_code=b.area_code');
+
+		$this->db->join('tb_profile AS c', 'c.username=a.user_submit');
+
+		$this->db->where('b.pic_area', $this->session->user->username);
 
 		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 00:00:00' . '")');
 

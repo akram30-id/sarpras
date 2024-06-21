@@ -53,7 +53,7 @@
 							<th>STATUS</th>
 							<th>DESKRIPSI</th>
 							<th>TGL DIBUAT</th>
-							<th>PIC ITEM</th>
+							<th>USER INPUT</th>
 							<th>ACTION</th>
 						</tr>
 					</thead>
