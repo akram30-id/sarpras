@@ -4,7 +4,7 @@
 			Cetak Laporan
 		</button>
 		<div class="collapse mb-3" id="collapseExample">
-			<form method="post" action="<?= base_url('area/print_booking') ?>">
+			<form method="post" action="<?= base_url('area/print_approval') ?>">
 				<div class="row align-items-end">
 					<div class="col-sm-3">
 						<div class="mb-3">

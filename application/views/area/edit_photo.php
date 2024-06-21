@@ -9,7 +9,7 @@
 						<label for="existing-photos">
 							Existing Photos
 						</label>
-						<div class="row">
+						<div class="row align-items-center">
 							<?php foreach($photos as $photo): ?>
 								<div class="col-sm-3 img-current" data-id="<?= $photo->id_photo_area ?>">
 									<img src="<?= $photo->photo_url ?>" style="width: 100%; border-radius: 16px;" alt="...">
