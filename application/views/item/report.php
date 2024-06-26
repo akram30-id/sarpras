@@ -3,7 +3,7 @@
 		<?php $this->load->view('flashdata'); ?>
 		<div class="card boder-0 shadow p-3" style="border-radius: 16px;">
 			<div class="card-body">
-				<h3 class="text-center mt-4 mb-5">Master Item Inventory</h3>
+				<h3 class="text-center mt-4 mb-5">Data Report Barang</h3>
 				<table id="datatables" data-url="<?= $datatables ?>" class="display" style="width:100%; font-size: 10pt;">
 					<thead>
 						<tr>

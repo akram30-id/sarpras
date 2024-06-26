@@ -55,3 +55,5 @@ $route['translate_uri_dashes'] = FALSE;
 
 $route['area/add/photos/(:any)'] = 'area/addPhotos/$1';
 $route['area/edit/photos/(:any)'] = 'area/editPhotos/$1';
+
+$route['ekskul/pic/(:any)']['GET'] = 'ekskul/getPic/$1';

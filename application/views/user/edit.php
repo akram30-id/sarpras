@@ -3,7 +3,7 @@
 		<?php $this->load->view('flashdata'); ?>
 		<div class="card boder-0 shadow p-3" style="border-radius: 16px;">
 			<div class="card-body">
-				<h3 class="text-center mt-4 mb-5">Regsitrasi User</h3>
+				<h3 class="text-center mt-4 mb-5"><?= $title ?></h3>
 				<form class="needs-validation" novalidate method="POST" action="<?= base_url('user/do_update/' . $user->username) ?>" enctype="multipart/form-data">
 					<div class="mb-3">
 						<label for="name" class="form-label">Nama</label>
@@ -19,18 +19,20 @@
 							Nomor Identitas User wajib diisi.
 						</div>
 					</div>
-					<div class="mb-3">
-						<label for="role" class="form-label">Role User</label>
-						<select class="form-select" name="role" required>
-							<option selected value="" disabled>- PILIH ROLE -</option>
-							<?php foreach ($roles as $s) : ?>
-								<option value="<?= $s->role ?>" <?php if($s->role == $user->role) echo 'selected="selected"' ?>><?= strtoupper($s->role_name) ?></option>
-							<?php endforeach; ?>
-						</select>
-						<div class="invalid-feedback">
-							Role User wajib diisi.
+					<?php if(!isset($edit_my_self)) { ?>
+						<div class="mb-3">
+							<label for="role" class="form-label">Role User</label>
+							<select class="form-select" name="role" required>
+								<option selected value="" disabled>- PILIH ROLE -</option>
+								<?php foreach ($roles as $s) : ?>
+									<option value="<?= $s->role ?>" <?php if($s->role == $user->role) echo 'selected="selected"' ?>><?= strtoupper($s->role_name) ?></option>
+								<?php endforeach; ?>
+							</select>
+							<div class="invalid-feedback">
+								Role User wajib diisi.
+							</div>
 						</div>
-					</div>
+					<?php } ?>
 					<div class="mb-3">
 						<label for="birth_date" class="form-label">Tanggal Lahir</label>
 						<input type="date" class="form-control" id="birth_date" name="birth_date" value="<?= $user->birth_date ?>" required>
