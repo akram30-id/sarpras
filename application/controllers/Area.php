@@ -569,7 +569,7 @@ class Area extends CI_Controller
 			$no = 1;
 			foreach ($result as $key => $value) {
 
-				if (trim($value->pic_area) == trim($this->session->user->username)) {
+				if (trim($value->pic_area) == trim($this->session->user->username) || $this->session->user->role == 1) {
 					if ($value->status_approval == "PENDING") {
 						$button = '<div class="d-flex align-items-center justify-content-center">
 										<a href="' . base_url('area/do_approve/' . $value->submission_area_code . '/1') . '" class="btn btn-primary btn-sm rounded-pill">Approve</a>

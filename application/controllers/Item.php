@@ -1184,8 +1184,8 @@ class Item extends CI_Controller
 			];
 		}
 
-		// $this->output->set_content_type('application/json')->set_output(json_encode($masterReturn));	
-		$this->output->set_content_type('application/json')->set_output(json_encode($output));	
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+		// $this->output->set_content_type('application/json')->set_output(json_encode($this->db->last_query()));
 	}
 
 	public function approve_request($idRequest, $type)
