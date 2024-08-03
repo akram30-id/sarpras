@@ -507,7 +507,8 @@ class Area extends CI_Controller
 					date('d F Y H:i', strtotime($value->start_date)),
 					date('d F Y H:i', strtotime($value->end_date)),
 					$value->user_notes,
-					$value->pic_name . ' (' . $value->pic_area . ')'
+					$value->pic_name . ' (' . $value->pic_area . ')',
+					date('d F Y H:i', strtotime($value->created_at))
 				];
 			}
 

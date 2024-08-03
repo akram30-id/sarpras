@@ -64,6 +64,7 @@
 							<th>SAMPAI TANGGAL</th>
 							<th>NOTES</th>
 							<th>PIC AREA</th>
+							<th>TGL DIBUAT</th>
 						</tr>
 					</thead>
 					<tbody></tbody>

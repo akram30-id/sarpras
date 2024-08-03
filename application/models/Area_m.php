@@ -210,7 +210,7 @@ class Area_m extends CI_Model
 		$this->db->where('a.user_submit', $user);
 
 		if (!in_array($search, ['', null])) {
-			$this->db->like('b.area_name', $search);
+			$this->db->where("(b.area_name LIKE '%$search%' OR a.submission_area_code LIKE '%$search%')");
 		}
 
 		$this->db->order_by('a.created_at', 'DESC');

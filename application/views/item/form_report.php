@@ -3,7 +3,7 @@
 		<?php $this->load->view('flashdata'); ?>
 		<div class="card boder-0 shadow p-3" style="border-radius: 16px;">
 			<div class="card-body">
-				<h3 class="text-center mt-4 mb-5">Request Item</h3>
+				<h3 class="text-center mt-4 mb-5">Report Item</h3>
 				<form class="needs-validation" novalidate method="POST" action="<?= base_url('item/do_report/' . $request_code) ?>" enctype="multipart/form-data">
 					<div class="mb-3">
 						<label for="report_type" class="form-label">Tipe Laporan</label>
