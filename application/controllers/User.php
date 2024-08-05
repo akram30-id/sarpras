@@ -132,7 +132,7 @@ class User extends CI_Controller
 		$this->db->from('tb_user AS a');
 		$this->db->join('tb_roles AS b', 'a.role=b.role');
 		$this->db->join('tb_profile AS c', 'a.username=c.username');
-		$this->db->where('a.username != ' . $this->session->user->username);
+		$this->db->where('a.username != "' . $this->session->user->username . '"');
 		$result = $this->db->get()->result();
 
 		$data = [];
