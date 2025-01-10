@@ -37,6 +37,18 @@ class Item_m extends CI_Model
 			'user_notes' => $post['user_notes'],
 			'qty' => $post['qty']
 		];
+
+		if ($data['start_date'] < date('Y-m-d H:i')) {
+			return ['success' => false, 'message' => 'Tgl Mulai tidak boleh kurang dari waktu sekarang.'];
+		}
+
+		if ($data['end_date'] <= date('Y-m-d H:i')) {
+			return ['success' => false, 'message' => 'Tgl Selesai tidak boleh kurang dari waktu sekarang.'];
+		}
+
+		if ($data['end_date'] < $data['start_date']) {
+			return ['success' => false, 'message' => 'Tgl Selesai tidak boleh kurang dari waktu mulai.'];
+		}
 		
 		$this->db->trans_begin();
 		$this->db->insert('tb_submission_item', $data); // insert ke tb_submission_item

@@ -25,7 +25,7 @@
 						<div class="col-sm-6">
 							<div class="mb-1">
 								<label for="start_date" class="form-label">Dari Tanggal</label>
-								<input type="date" class="form-control" id="start_date" name="start_date" required>
+								<input type="date" min="<?= date('Y-m-d') ?>" class="form-control" id="start_date" name="start_date" required>
 								<div class="invalid-feedback">
 									Tanggal mulai wajib diisi.
 								</div>
@@ -45,7 +45,7 @@
 						<div class="col-sm-6">
 							<div class="mb-1">
 								<label for="end_date" class="form-label">Sampai Tanggal</label>
-								<input type="date" class="form-control" id="end_date" name="end_date" required>
+								<input type="date" min="<?= date('Y-m-d') ?>" class="form-control" id="end_date" name="end_date" required>
 								<div class="invalid-feedback">
 									Tanggal berakhir wajib diisi.
 								</div>
