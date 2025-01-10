@@ -27,3 +27,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           # Remote directory
           server-dir: ${{ secrets.FTP_DIRECTORY }}
+          ignore: '.env'
