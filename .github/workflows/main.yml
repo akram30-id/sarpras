@@ -26,4 +26,4 @@ jobs:
           # FTP password
           password: guest
           # Remote directory
-          server-dir: /var/www/html/sarpras
+          server-dir: /var/www/html/sarpras/
