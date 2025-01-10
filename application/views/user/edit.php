@@ -4,7 +4,7 @@
 		<div class="card boder-0 shadow p-3" style="border-radius: 16px;">
 			<div class="card-body">
 				<h3 class="text-center mt-4 mb-5"><?= $title ?></h3>
-				<form class="needs-validation" novalidate method="POST" action="<?= base_url('user/do_update/' . $user->username) ?>" enctype="multipart/form-data">
+				<form class="needs-validation" novalidate method="POST" action="<?= base_url('user/do_update/' . $user->user_username) ?>" enctype="multipart/form-data">
 					<div class="mb-3">
 						<label for="name" class="form-label">Nama</label>
 						<input type="text" class="form-control" id="name" name="name" value="<?= $user->name ?>" required>
@@ -14,7 +14,7 @@
 					</div>
 					<div class="mb-3">
 						<label for="user_code" class="form-label">NIP/NIS/NIK</label>
-						<input type="text" class="form-control" id="user_code" name="user_code" value="<?= $user->username ?>" required disabled>
+						<input type="text" class="form-control" id="user_code" name="user_code" value="<?= $user->user_username ?>" required disabled>
 						<div class="invalid-feedback">
 							Nomor Identitas User wajib diisi.
 						</div>

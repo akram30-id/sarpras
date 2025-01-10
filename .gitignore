@@ -36,5 +36,6 @@ api_log/*
 ngrok.exe
 .htaccess
 .local.env
+.env
 .development.env
 the_env.php

@@ -276,11 +276,35 @@ class Ekskul extends CI_Controller
 		$data['title'] = 'Set Jadwal Ekskul';
 		$data['module'] = 'Ekskul Page';
 		$data['ekskul'] = $ekskul;
-		$data['findArea'] = base_url('area/find_area');
+		$data['findArea'] = base_url('ekskul/find_area');
 		$data['ajax'] = base_url('ekskul/pic/' . $ekskulCode);
 		$data['content'] = $this->load->view('ekskul/form_schedule', $data, true);
 
 		$this->load->view('template', $data);
+	}
+
+	public function find_area()
+	{
+		$get = $this->input->get();
+
+		$this->db->select('a.area_code, a.area_name');
+		$this->db->from('tb_master_area AS a');
+
+		if (!in_array($get['search'], [null, ""])) {
+			$this->db->like('a.area_name', $get['search']);
+		}
+
+		$this->db->limit(100);
+
+		$result = $this->db->get()->result();
+
+		$data = [];
+
+		foreach ($result as $key => $value) {
+			$data[] = $value->area_code . ' - ' . $value->area_name;
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($data));
 	}
 
 	public function do_insert_schedule($ekskulCode)

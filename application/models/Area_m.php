@@ -116,6 +116,18 @@ class Area_m extends CI_Model
 		$startInput = date('Y-m-d H:i', strtotime($post['start_date'] . ' ' . $post['start_clock']));
 		$endInput = date('Y-m-d H:i', strtotime($post['end_date'] . ' ' . $post['end_clock']));
 
+		if ($startInput < date('Y-m-d H:i')) {
+			return ['success' => false, 'message' => 'Tgl Mulai tidak boleh kurang dari waktu sekarang.'];
+		}
+
+		if ($endInput <= date('Y-m-d H:i')) {
+			return ['success' => false, 'message' => 'Tgl Selesai tidak boleh kurang dari waktu sekarang.'];
+		}
+
+		if ($endInput < $startInput) {
+			return ['success' => false, 'message' => 'Tgl Selesai tidak boleh kurang dari waktu mulai.'];
+		}
+
 		// cek dulu apakah udah ada yg booking atau belum
 		$getBookingExist = $this->db->select('start_date, end_date')
 		->from('tb_submission_area')
@@ -210,7 +222,7 @@ class Area_m extends CI_Model
 		$this->db->where('a.user_submit', $user);
 
 		if (!in_array($search, ['', null])) {
-			$this->db->like('b.area_name', $search);
+			$this->db->where("(b.area_name LIKE '%$search%' OR a.submission_area_code LIKE '%$search%')");
 		}
 
 		$this->db->order_by('a.created_at', 'DESC');

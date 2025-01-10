@@ -35,9 +35,9 @@ class User extends CI_Controller
 
 	private function _getUserByUsername($username)
 	{
-		$this->db->select('a.role, b.*');
+		$this->db->select('a.role, a.username as user_username, b.*');
 		$this->db->from('tb_user AS a');
-		$this->db->join('tb_profile AS b', 'a.username=b.username');
+		$this->db->join('tb_profile AS b', 'a.username=b.username', 'LEFT');
 		$this->db->where('a.username', $username);
 
 		$query = $this->db->get()->row();
@@ -132,7 +132,7 @@ class User extends CI_Controller
 		$this->db->from('tb_user AS a');
 		$this->db->join('tb_roles AS b', 'a.role=b.role');
 		$this->db->join('tb_profile AS c', 'a.username=c.username');
-		$this->db->where('a.username != ' . $this->session->user->username);
+		$this->db->where('a.username != "' . $this->session->user->username . '"');
 		$result = $this->db->get()->result();
 
 		$data = [];
@@ -189,6 +189,7 @@ class User extends CI_Controller
 
 			// echo '<pre>';
 			// print_r($post);
+			// print_r($username);
 			// return;
 
 			$headers = $_SERVER;
@@ -216,22 +217,30 @@ class User extends CI_Controller
 
 			$this->db->trans_begin();
 
+			$getUserProfile = $this->db->get_where('tb_profile', ['username' => $username])->row();
+
 			// update tb_user
 			$this->db->set('user_input', $this->session->user->username);
 			$this->db->where('username', $username);
 			$saveUser = $this->db->update('tb_user');
 
 			// update tb_profile
-			$this->db->set('name', $post['name']);
 			if ($base64_image !== null) {
 				$this->db->set('photo', $base64_image);
 			}
 			$this->db->set('birth_date', $post['birth_date']);
-			$this->db->set('born_at', $post['born_at']);
-			$this->db->set('name', $post['name']);
+			$this->db->set('born_at', strtoupper($post['born_at']));
+			$this->db->set('name', strtoupper($post['name']));
 			$this->db->set('user_input', $this->session->user->username);
-			$this->db->where('username', $username);
-			$saveProfile = $this->db->update('tb_profile');
+
+			// jika belum ada profilenya
+			if (!$getUserProfile) {
+				$this->db->set('username', $username);
+				$saveProfile = $this->db->insert('tb_profile');
+			} else { // jika sudah ada
+				$this->db->where('username', $username);
+				$saveProfile = $this->db->update('tb_profile');
+			}
 
 			if ($this->db->trans_status() == false) {
 				$this->db->trans_rollback();
@@ -243,6 +252,7 @@ class User extends CI_Controller
 
 				if ($username == $this->session->user->username && $base64_image != null) {
 					$this->session->user->photo = $base64_image;
+					$this->session->user->name = $post['name'];
 				}
 
 				$this->db->trans_commit();
