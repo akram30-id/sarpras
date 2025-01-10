@@ -20,10 +20,10 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           # FTP host
-          server: 103.84.207.203
+          server: ${{ secrets.FTP_SERVER }}
           # FTP user
-          username: ftp_user
+          username: ${{ secrets.FTP_USERNAME }}
           # FTP password
-          password: guest
+          password: ${{ secrets.FTP_PASSWORD }}
           # Remote directory
-          server-dir: /sarpras/
+          server-dir: ${{ secrets.FTP_DIRECTORY }}
