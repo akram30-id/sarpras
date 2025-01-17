@@ -39,7 +39,7 @@ jobs:
             docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
             docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/sarpras:latest
             docker stop sarpras || true && docker rm sarpras || true
-            docker run -d --name sarpras -p 9001:80 ${{ secrets.DOCKER_HUB_USERNAME }}/sarpras:latest
+            docker run -d --name sarpras -p 80:9001 ${{ secrets.DOCKER_HUB_USERNAME }}/sarpras:latest
           # Hostname or IP address of the server.
           host: ${{ secrets.EC2_PUBLIC_IP }}
           # Username for authentication.
