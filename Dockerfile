@@ -37,7 +37,7 @@ RUN echo "<Directory /var/www/html>\n\
 	</Directory>" >> /etc/apache2/apache2.conf
 
 # Expose the Apache port
-EXPOSE 80
+EXPOSE 9001
 
 # Start Apache in the foreground
 CMD ["apache2-foreground"]
