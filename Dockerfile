@@ -7,11 +7,26 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql
 # Enable Apache mod_rewrite for .htaccess support
 RUN a2enmod rewrite
 
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 # Set the working directory in the container
 WORKDIR /var/www/html
 
 # Copy CodeIgniter project files to the container
 COPY . /var/www/html
+
+# Run Composer to install dependencies
+RUN composer install --no-dev --optimize-autoloader --working-dir=/var/www/html
+
+# Ensure proper permissions for the web server
+RUN chown -R www-data:www-data /var/www/html \
+	&& chmod -R 755 /var/www/html
+
+# Configure Apache to use the .htaccess file
+RUN echo "<Directory /var/www/html>\n\
+	AllowOverride All\n\
+	</Directory>" >> /etc/apache2/apache2.conf
 
 # Create the_env.php file dynamically
 RUN echo "<?php\n\
@@ -23,15 +38,6 @@ RUN echo "<?php\n\
 	echo 'cannot load env';\n\
 	}\n\
 	?>" > /var/www/html/the_env.php
-
-# Ensure proper permissions for the web server
-RUN chown -R www-data:www-data /var/www/html \
-	&& chmod -R 755 /var/www/html
-
-# Configure Apache to use the .htaccess file
-RUN echo "<Directory /var/www/html>\n\
-	AllowOverride All\n\
-	</Directory>" >> /etc/apache2/apache2.conf
 
 # Expose port 80
 EXPOSE 80
