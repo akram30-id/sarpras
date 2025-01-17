@@ -13,6 +13,17 @@ WORKDIR /var/www/html
 # Copy CodeIgniter project files to the container
 COPY . /var/www/html
 
+# Create the_env.php file dynamically
+RUN echo "<?php\n\
+	require_once 'vendor/autoload.php';\n\
+	try {\n\
+	\$dotenv = new Dotenv\Dotenv('./', '.local.env');\n\
+	\$dotenv->load();\n\
+	} catch (Exception \$e) {\n\
+	echo 'cannot load env';\n\
+	}\n\
+	?>" > /var/www/html/the_env.php
+
 # Ensure proper permissions for the web server
 RUN chown -R www-data:www-data /var/www/html \
 	&& chmod -R 755 /var/www/html
@@ -22,7 +33,7 @@ RUN echo "<Directory /var/www/html>\n\
 	AllowOverride All\n\
 	</Directory>" >> /etc/apache2/apache2.conf
 
-# Expose port 9001 instead of the default Apache port
+# Expose port 80
 EXPOSE 80
 
 # Update Apache to listen on port 9001
