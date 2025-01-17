@@ -17,7 +17,7 @@ COPY . /var/www/html
 RUN echo "<?php\n\
 	require_once 'vendor/autoload.php';\n\
 	try {\n\
-	\$dotenv = new Dotenv\Dotenv('./', '.local.env');\n\
+	\$dotenv = new Dotenv\Dotenv('./', '.env');\n\
 	\$dotenv->load();\n\
 	} catch (Exception \$e) {\n\
 	echo 'cannot load env';\n\
