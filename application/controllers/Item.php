@@ -316,107 +316,86 @@ class Item extends CI_Controller
 	public function datatablesRequest()
 	{
 		$post = $this->input->post();
-		$search = $post['search']['value'];
 
-		$this->db->select('a.*, b.inventory_name, b.unit_qty');
-		$this->db->from('tb_submission_item AS a');
-		$this->db->join('tb_master_item AS b', 'a.item_code=b.item_code');
+		try {
 
-		if ($this->session->user->role != 1) { // kalo role nya selain admin, cuma boleh akses yg dia submit aja
-			$this->db->where('a.user_submit', $this->session->user->username);
-		}
-		
-		if ($search) {
-			$this->db->like('b.inventory_name', $search);
-			$this->db->or_like('a.item_code', $search);
-		}
+			$masterItems = $this->Item_m->showRequestItem($post);
 
-		$this->db->order_by('a.id_submission_item', 'DESC');
+			$data = [];
 
-		$masterItems = $this->db->get()->result();
+			if ($masterItems) {
+				$no = 1;
+				foreach ($masterItems as $key => $value) {					
+					
+					$button = '';
+					
+					// kalau available to cancel dan available to report
+					// atau statusnya masih pending
+					if ($value->cancel_available == 1) {
+						// boleh dicancel
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
+											Cancel
+										</button>
+									</div>
+									<div class="flex mt-2">
+										<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
+											<div class="card card-body pt-2" style="font-size: 9pt;">
+												Apakah Anda yakin?
+												<div class="d-flex justify-content-end">
+													<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
+													<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
+												</div>
+											</div>
+										</div>
+									</div>';
+					}
+					
+					if ($value->report_available == 1) {
+						$button = '<div class="d-flex align-items-center justify-content-center">
+										<a href="' . base_url('item/report/' . $value->submission_item_code) . '" target="_blank" class="btn btn-sm btn-secondary rounded-pill">
+											Laporan
+										</a>
+									</div>';
+					}
 
-		$data = [];
-
-		if ($masterItems) {
-			$no = 1;
-			foreach ($masterItems as $key => $value) {
-				$getReturnApproval = $this->db->select('a.id_return_item')
-												->from('tb_approval_item AS a')
-												->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item')
-												->where('b.submission_item_code', $value->submission_item_code)
-												->where_in('a.status_approval', ['APPROVE', 'REJECT'])
-												->get()->row();
-
-				if ($getReturnApproval) { // kalo barangnya udah dibalikin dan udah diapprove
-					continue;
+					$data[] = [
+						$no++,
+						$value->submission_item_code,
+						$value->item_code,
+						$value->status_approval == "PENDING"
+							? '<i style="color: red;">' . $value->status_approval . '</i>'
+							: $value->status_approval,
+						$value->inventory_name,
+						($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty,
+						date('d F Y H:i', strtotime($value->start_date)),
+						date('d F Y H:i', strtotime($value->end_date)),
+						$value->user_notes,
+						date('d F Y H:i', strtotime($value->created_at)),
+						'<small style="font-size: 8pt;">' . $value->name . ' <br>(' . $value->user_submit . ')' . '</small>',
+						$button
+					];
 				}
 
-				$data[] = [
-					$no++,
-					$value->submission_item_code,
-					$value->item_code,
-					$value->inventory_name,
-					($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty,
-					date('d F Y H:i', strtotime($value->start_date)),
-					date('d F Y H:i', strtotime($value->end_date)),
-					$value->user_notes,
-					date('d F Y H:i', strtotime($value->created_at)),
-					$value->user_submit,
-					(($this->session->user->role == 1 || $this->session->user->username == $value->user_submit) && date('Y-m-d H:i', strtotime($value->end_date)) > date('Y-m-d H:i'))
-						? '<div class="d-flex align-items-center justify-content-center">
-								<button class="btn btn-sm btn-danger rounded-pill" type="button" style="margin-right: 8px;" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '" aria-expanded="false" aria-controls="cancel' . trim($value->submission_item_code) . '">
-									Cancel
-								</button>
-								<a href="' . base_url('item/report/' . $value->submission_item_code) . '" class="btn btn-sm btn-secondary rounded-pill">
-									Laporan
-								</a>
-							</div>
-							<div class="flex mt-2">
-								<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
-									<div class="card card-body pt-2" style="font-size: 9pt;">
-										Apakah Anda yakin?
-										<div class="d-flex justify-content-end">
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
-										</div>
-									</div>
-								</div>
-							</div>'
-						: '<div class="d-flex align-items-center justify-content-center">
-								<a href="' . base_url('item/report/' . $value->submission_item_code) . '" class="btn btn-sm btn-secondary rounded-pill">
-									Laporan
-								</a>
-							</div>
-							<div class="flex mt-2">
-								<div class="collapse" id="cancel' . trim($value->submission_item_code) . '">
-									<div class="card card-body pt-2" style="font-size: 9pt;">
-										Apakah Anda yakin?
-										<div class="d-flex justify-content-end">
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" style="margin-right: 10px;">Ya</a>
-											<a href="' . base_url('item/cancel/' . $value->submission_item_code) . '" data-bs-toggle="collapse" data-bs-target="#cancel' . trim($value->submission_item_code) . '">Tidak</a>
-										</div>
-									</div>
-								</div>
-							</div>'
+				$output = [
+					'draw' => intval($this->input->post('draw')),
+					'recordsTotal' => 100000,
+					'recordsFiltered' => count($masterItems),
+					'data' => $data
+				];
+			} else {
+				$output = [
+					'draw' => intval($this->input->post('draw')),
+					'recordsTotal' => 0,
+					'recordsFiltered' => 0,
+					'data' => []
 				];
 			}
 
-			$output = [
-				'draw' => intval($this->input->post('draw')),
-				'recordsTotal' => count($masterItems),
-				'recordsFiltered' => count($masterItems),
-				'data' => $data
-			];
-		} else {
-			$output = [
-				'draw' => intval($this->input->post('draw')),
-				'recordsTotal' => 0,
-				'recordsFiltered' => 0,
-				'data' => []
-			];
+			$this->output->set_content_type('application/json')->set_output(json_encode($output));
+		} catch (\Throwable $th) {
+			$this->output->set_content_type('application/json')->set_output(json_encode($th->getMessage()));
 		}
-
-		$this->output->set_content_type('application/json')->set_output(json_encode($output));
 	}
 
 	public function form_request($itemCode = '')
@@ -648,13 +627,14 @@ class Item extends CI_Controller
 			$this->db->trans_rollback();
 			$this->_setFlashdata(false, 'Transaction Failed.');
 			$this->_writeLog('REPORT_ADD', false, $post, $headers);
+			return redirect('item/report/' . $requestCode);
 		} else {
 			$this->db->trans_commit();
 			$this->_setFlashdata(true, 'Report berhasil dikirim.');
 			$this->_writeLog('REPORT_ADD', true, $post, $headers);
+			return redirect('item/show_report');
 		}
 
-		return redirect('item/report/' . $requestCode);
 	}
 
 	public function show_report()
@@ -842,6 +822,61 @@ class Item extends CI_Controller
 	{
 		$data['title'] = 'Kembalikan Barang';
 		$data['module'] = 'Item Page';
+		$data['datatables'] = base_url('item/request_return');
+		$data['content'] = $this->load->view('item/show_return', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function request_return()
+	{
+		$post = $this->input->post();
+
+		$requestReturn = $this->Item_m->showRequestReturn($post);
+
+		$data = [];
+		if ($requestReturn) {
+			$no = 1;
+			foreach ($requestReturn as $key => $value) {
+				$data[] = [
+					$no++,
+					$value->return_item_code, // KODE RETURN
+					$value->submission_item_code, // KODE BOOKING
+					$value->status_approval == "PENDING" // STATUS APPROVAL
+						? '<i style="color: red;">' . $value->status_approval . '</i>'
+						: $value->status_approval,
+					$value->inventory_name, // NAMA BARANG
+					($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty, // JUMLAH
+					$value->user_notes, // DESKRIPSI
+					'<small style="font-size: 8pt;">' . $value->user_request . '<br>(' . $value->user_submit . ') </small>', // USER REQUEST
+					'<img src="' . $value->signature . '" height="32">', // TANDA TANGAN
+					date('d F Y H:i', strtotime($value->created_at)), // TGL DIAJUKAN
+				];
+
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 100000,
+				'recordsFiltered' => count($requestReturn),
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	public function form_return()
+	{
+		$data['title'] = 'Kembalikan Barang';
+		$data['module'] = 'Item Page';
 		$data['urlRequest'] = base_url('item/find_request');
 		$data['urlQTY'] = base_url('item/get_qty_request');
 		$data['content'] = $this->load->view('item/form_return', $data, true);
@@ -954,80 +989,45 @@ class Item extends CI_Controller
 			$this->_writeLog('ITEM_RTN', true, $post, $headers);
 		}
 
-		return redirect('item/approve');
+		return redirect('item/return');
 	}
 
 	public function approve()
 	{
 		$data['title'] = 'Approval Item';
 		$data['module'] = 'Item Page';
-		$data['datatables'] = base_url('item/datatablesApprove/return');
+		$data['datatables'] = base_url('item/datatablesApprove/2');
+		$data['datatablesRequest'] = base_url('item/datatablesApprove/1');
+		$data['content'] = $this->load->view('item/approval', $data, true);
+
+		$this->load->view('template', $data);
+	}
+
+	public function approve_booking()
+	{
+		$data['title'] = 'Approval Item Booking';
+		$data['module'] = 'Item Page';
+		$data['datatables'] = base_url('item/datatables_request');
 		$data['datatablesRequest'] = base_url('item/datatablesApprove/request');
 		$data['content'] = $this->load->view('item/approval', $data, true);
 
 		$this->load->view('template', $data);
 	}
 
-	private function masterReturn($where = [], $search = null, $post = null)
-	{
-		if ($post == 'return') {
-			$this->db->select('a.*, b.return_item_code, b.user_notes, b.user_submit, b.signature, c.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
-			$this->db->from('tb_approval_item AS a');
-			$this->db->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item');
-			$this->db->join('tb_submission_item AS c', 'b.submission_item_code=c.submission_item_code');
-			$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
-		}
-
-		if ($post != null && $post == 'request') {
-			$this->db->select('a.*, b.user_notes, b.user_submit, b.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
-			$this->db->from('tb_approval_item AS a');
-			$this->db->join('tb_submission_item AS b', 'a.submission_item_code=b.submission_item_code');
-			$this->db->join('tb_master_item AS d', 'b.item_code=d.item_code');
-		}
-
-		if (!empty($where)) {
-			$this->db->where($where);
-		}
-		
-		if ($search) {
-			$this->db->like('d.inventory_name', $search);
-			$this->db->or_like('d.item_code', $search);
-			$this->db->or_like('b.user_notes', $search);
-			$this->db->or_like('a.user_input', $search);
-		}
-
-		$this->db->order_by('a.id_approval_item', 'DESC');
-
-		$masterReturn = $this->db->get()->result();
-
-		return $masterReturn;
-	}
-
-	public function datatablesApprove($postType)
+	public function datatables_request()
 	{
 		$post = $this->input->post();
 		$search = $post['search']['value'];
 
-		$masterReturn = $this->masterReturn([], $search, $postType);
+		$masterReturn = $this->masterReturn([], $search, $postType, $post);
 
 		$data = [];
 
 		if ($masterReturn) {
 			$no = 1;
-			$isPIC = false;
 			foreach ($masterReturn as $key => $value) {
+				$isPIC = false;
 				$areaCode = $value->area_code;
-
-				if ($areaCode != null) {
-					$getPIC = $this->db->select('pic_area')
-									->from('tb_master_area')
-									->where('area_code', $areaCode)
-									->get()->row();
-
-					if ($getPIC) {
-						$isPIC = true;
-					}
-				}
 
 				$data[] = [
 					$no++,
@@ -1041,16 +1041,9 @@ class Item extends CI_Controller
 					$value->user_submit,
 					'<img src="' . $value->signature . '" height="32">',
 					$value->user_input,
-					($this->session->user->role == 1 || $isPIC == true)
-						? ($value->status_approval == 'PENDING')
-							?  '<div class="d-flex align-items-center justify-content-center">
-									<a href="' . base_url('item/approve_request/' . $value->id_approval_item) . '/' . $value->approval_item_flag . '" class="btn btn-sm btn-secondary rounded-pill">
-										Approve
-									</a>
-								</div>'
-							: '<p class="text-primary"><i>' . $value->status_approval . '</i></p>'
-						: ''
+					$button
 				];
+
 			}
 
 			$output = [
@@ -1068,32 +1061,159 @@ class Item extends CI_Controller
 			];
 		}
 
-		$this->output->set_content_type('application/json')->set_output(json_encode($output));	
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+	}
+
+	private function masterReturn($where = [], $search = null, $postType = null, $post = null)
+	{
+		if ($post != null) {
+			$offset = $post['start'] ?? 1;
+			$limit = $post['length'] ?? 10;
+		} else {
+			$offset = 0;
+			$limit = 10;
+		}
+
+		if ($postType == 'return') {
+			$this->db->select('a.*, b.return_item_code, b.user_notes, b.user_submit, b.signature, c.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
+			$this->db->from('tb_approval_item AS a');
+			$this->db->join('tb_return_item AS b', 'a.id_return_item=b.id_return_item');
+			$this->db->join('tb_submission_item AS c', 'b.submission_item_code=c.submission_item_code');
+			$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
+			$this->db->join('tb_master_area AS e', 'd.area_code=e.area_code', 'left');
+
+			if ($search) {
+				$this->db->like('b.return_item_code', $search);
+				// $this->db->or_like('d.item_code', $search);
+				// $this->db->or_like('b.user_notes', $search);
+				// $this->db->or_like('a.user_input', $search);
+			}
+
+			$this->db->where('(b.user_submit = "' . trim($this->session->user->username) . '" OR e.pic_area="' . trim($this->session->user->username) . '")');
+			// $this->db->or_where('e.pic_area', trim($this->session->user->username));
+		}
+
+		if ($postType != null && $postType == 'request') {
+			$this->db->select('a.*, b.user_notes, b.user_submit, b.qty, d.item_code, d.inventory_name, d.unit_qty, d.area_code');
+			$this->db->from('tb_approval_item AS a');
+			$this->db->join('tb_submission_item AS b', 'a.submission_item_code=b.submission_item_code');
+			$this->db->join('tb_master_item AS d', 'b.item_code=d.item_code');
+			$this->db->join('tb_master_area AS e', 'd.area_code=e.area_code');
+
+			if ($search) {
+				$this->db->like('b.submission_item_code', $search);
+				// $this->db->or_like('d.item_code', $search);
+				// $this->db->or_like('b.user_notes', $search);
+				// $this->db->or_like('a.user_input', $search);
+			}
+
+			$this->db->where('(b.user_submit = "' . trim($this->session->user->username) . '" OR e.pic_area="' . trim($this->session->user->username) . '")');
+			// $this->db->or_where('e.pic_area', trim($this->session->user->username));
+		}
+
+		if (!empty($where)) {
+			$this->db->where($where);
+		}
+
+		$this->db->order_by('a.id_approval_item', 'DESC');
+
+		$this->db->limit($limit, $offset);
+
+		$masterReturn = $this->db->get()->result();
+
+		return $masterReturn;
+	}
+
+	public function datatablesApprove($postType)
+	{
+		$post = $this->input->post();
+
+		// $masterReturn = $this->masterReturn([], $search, $postType, $post);
+
+		$masterReturn = $this->Item_m->showRequestApproval($post, $postType);
+
+		$data = [];
+
+		if ($masterReturn) {
+			$no = 1;
+			foreach ($masterReturn as $key => $value) {
+
+				$button = '<p class="text-primary"><i>' . $value->status_approval . '</i></p>';
+
+				// kalo ada request pending
+				// butuh diapprove
+				if ($value->need_approval == 1) {
+					$button = '<div class="d-flex align-items-center justify-content-center">
+									<a href="' . base_url('item/approve_request/' . $value->id_approval_item) . '/' . $value->approval_item_flag . '" class="btn btn-sm btn-secondary rounded-pill">
+										Approve
+									</a>
+								</div>';
+				}
+
+				$data[] = [
+					$no++,
+					$value->return_item_code ?? $value->submission_item_code,
+					$value->inventory_name,
+					$value->approval_item_flag == 1 ? 'Peminjaman' : 'Pengembalian',
+					$value->status_approval,
+					($value->qty == null) ? 0 : $value->qty . ' ' . $value->unit_qty,
+					$value->user_notes,
+					date('d F Y H:i', strtotime($value->created_at)),
+					'<small style="font-size: 8pt;">' . $value->user_request . '<br>(' . $value->user_submit . ') </small>',
+					'<img src="' . $value->signature . '" height="32">',
+					in_array($value->user_approval, [null, ""]) 
+						? "" 
+						: '<small style="font-size: 8pt;">' . $value->user_approval . '<br>(' . $value->user_input . ') </small>',
+					$button
+				];
+
+			}
+
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => count($masterReturn),
+				'recordsFiltered' => count($masterReturn),
+				'data' => $data
+			];
+		} else {
+			$output = [
+				'draw' => intval($this->input->post('draw')),
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => []
+			];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($output));
+		// $this->output->set_content_type('application/json')->set_output(json_encode($this->db->last_query()));
 	}
 
 	public function approve_request($idRequest, $type)
 	{
 		if ($type == 1) {
-			$type = 'request';
+			$titleType = 'Peminjaman';
+		} else if ($type == 2) {
+			$titleType = 'Pengembalian';
+		} else {
+			$this->_setFlashdata(false, 'INVALID REQUEST');
+
+			return redirect('item/approve');
 		}
 
-		if ($type == 2) {
-			$type = 'return';
+		$masterApproval = $this->Item_m->getDataApprove($idRequest, $type);
+
+		if (!$masterApproval) {
+			$this->_setFlashdata(false, 'Data tidak ditemukan.');
+			return redirect('item/approve');
 		}
 
-		$masterReturn = $this->masterReturn(['a.id_approval_item' => $idRequest], null, $type);
+		$codeRequest = $type == 1 
+						? $masterApproval->submission_item_code 
+						: $masterApproval->return_item_code;
 
-		$titleType = 'PEGEMBALIAN';
-		if ($masterReturn) {
-			$masterReturnFirst = $masterReturn[0];
-			if ($masterReturnFirst->approval_item_flag == 1) {
-				$titleType = 'PENGAJUAN';
-			}
-		}
-
-		$data['title'] = 'Approval ' . $titleType . ' ' . !isset($masterReturn[0]->return_item_code) ? $masterReturn[0]->submission_item_code : $masterReturn[0]->return_item_code;
+		$data['title'] = 'Approval ' . $titleType . ' ' . $codeRequest;
 		$data['module'] = 'Item Page';
-		$data['master'] = $masterReturn[0];
+		$data['master'] = $masterApproval;
 		$data['content'] = $this->load->view('item/approval_request', $data, true);
 
 		$this->load->view('template', $data);
@@ -1110,7 +1230,8 @@ class Item extends CI_Controller
 								->get()->row();
 
 		$this->db->trans_begin();
-		$saveApproval = $this->db->update('tb_approval_item', [
+		
+		$this->db->update('tb_approval_item', [
 			'status_approval' => strtoupper($post['approve_status']),
 			'approval_reason' => $post['user_notes'],
 			'signature' => $post['signature'],
@@ -1147,6 +1268,8 @@ class Item extends CI_Controller
 				], ['item_code' => $getQTYPinjaman->item_code]); // approvalnya reject, stoknya balik
 			}
 		}
+
+		$post['id_approval_item'] = $idApproval;
 
 		if ($this->db->trans_status() === false) {
 			$this->db->trans_rollback();
@@ -1245,6 +1368,114 @@ class Item extends CI_Controller
 				}
 			}
 		}
+	}
+
+	public function print_item($type)
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'LAPORAN BARANG INVENTARIS PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'INVENTORY_REPORT_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		if ($type == 'non_area') {
+			$this->db->select('a.*, b.name');
+
+			$this->db->from('tb_master_item AS a');
+
+			$this->db->join('tb_profile AS b', 'a.user_input=b.username');
+
+			$this->db->where('a.area_code IS NULL');
+		} else {
+			$this->db->select('a.*, b.name, c.*');
+
+			$this->db->from('tb_master_item AS a');
+
+			$this->db->join('tb_profile AS b', 'a.user_input=b.username');
+
+			$this->db->join('tb_master_area AS c', 'a.area_code=c.area_code');
+
+			$this->db->where('a.area_code IS NOT NULL');
+		}
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 23:59:00' . '")');
+
+
+		$this->db->order_by('a.id_master_inventory', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'INVENTORY REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report,
+			'type' => $type
+        ];
+
+        $html = $this->load->view('item/print_item', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
+	}
+
+	public function print_approval()
+	{
+		$post = $this->input->post();
+
+		$start = $post['start'];
+		$end = $post['end'];
+
+		$this->data['title_pdf'] = 'LAPORAN INVENTARIS APPROVAL PERIODE ' . date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+        
+        // filename dari pdf ketika didownload
+        $file_pdf = 'INVENTORY_APPROVAL_' . date('dmY', strtotime($start)) . '_' . date('dmY', strtotime($end));
+        // setting paper
+        $paper = 'A4';
+        //orientasi paper potrait / landscape
+        $orientation = "potrait";
+
+		$this->db->select('a.*, b.name, c.submission_item_code, d.item_code, d.inventory_name, c.qty');
+
+		$this->db->from('tb_approval_item AS a');
+
+		$this->db->join('tb_profile AS b', 'a.user_input=b.username');
+
+		$this->db->join('tb_submission_item AS c', 'a.submission_item_code=c.submission_item_code');
+
+		$this->db->join('tb_master_item AS d', 'c.item_code=d.item_code');
+
+		$this->db->where('(a.created_at BETWEEN "' . $start . ' 00:00:00' . '" AND "' . $end . ' 23:59:00' . '")');
+
+		$this->db->order_by('a.id_approval_item', 'ASC');
+		
+		$report = $this->db->get()->result();
+
+		// echo '<pre>';
+		// print_r($report);
+		// return;
+
+        $data = [
+            'title' => 'APPROVAL INVENTORY REPORT',
+			'subtitle' => $this->data['title_pdf'],
+            'report' => $report
+        ];
+
+        $html = $this->load->view('item/print_approval', $data, true);
+        
+        // run dompdf
+        $this->pdfgenerator->generate($html, $file_pdf, $paper, $orientation);
 	}
 
 }

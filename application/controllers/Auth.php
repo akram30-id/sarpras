@@ -19,6 +19,7 @@ class Auth extends CI_Controller
 	public function login()
 	{
 		$post = $this->input->post();
+
 		$ipAddress = $this->input->ip_address();
 		$headers = $_SERVER;
 		$headers['ip_address'] = $ipAddress;
@@ -46,7 +47,11 @@ class Auth extends CI_Controller
 			unset($user->password);
 			unset($user->id_user);
 
+			// var_dump($user);
+			// return;
+
 			$role = $this->db->select('role_name')->from('tb_roles')->where(['id_role' => $user->role])->get()->row();
+
 			$roleName = $role->role_name;
 			$user->role_name = $roleName;
 
@@ -54,7 +59,18 @@ class Auth extends CI_Controller
 			$user->name = $profile->name;
 			$user->photo = $profile->photo;
 
-			$this->session->set_userdata('user', $user);
+			if (isset($post['remember']) && $post['remember'] == true) {
+				$this->session->set_tempdata('user', $user, 604800);
+			} else {
+				$this->session->set_userdata('user', $user);
+			}
+
+			if ($this->_isPIC(trim($user->username))) {
+				$user->is_pic = true;
+			} else {
+				$user->is_pic = false;
+			}
+
 			$this->session->set_flashdata('success', 'Login Berhasil');
 
 			// success login logging
@@ -72,6 +88,21 @@ class Auth extends CI_Controller
 
 			redirect('auth/index');
 		}
+	}
+
+	private function _isPIC($username)
+	{
+		$area = $this->db->get_where('tb_master_area', ['pic_area' => $username])->row();
+
+		if ($this->session->user->role == 1) {
+			return true;
+		}
+
+		if ($area) {
+			return true;
+		}
+
+		return false;
 	}
 
 	public function logout($username)
